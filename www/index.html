@@ -1,0 +1,2449 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mirror Maze">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#06080c">
+<meta name="format-detection" content="telephone=no">
+<title>Mirror Maze</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #13131f;
+    --green: #b6ff3d;
+    --cyan: #3df0ff;
+    --mirror: #7a8bb8;
+    --amber: #ffcf3d;
+    --red: #ff3d5a;
+    --purple: #b23dff;
+    --glass: rgba(255,255,255,0.08);
+    --glass-border: rgba(255,255,255,0.16);
+  }
+  html, body {
+    margin: 0; padding: 0; overflow: hidden;
+    background: var(--bg); height: 100%;
+    touch-action: none;
+    font-family: 'Quicksand', -apple-system, system-ui, sans-serif;
+    -webkit-user-select: none; user-select: none;
+  }
+  #wrap {
+    position: relative; width: 100vw; height: 100vh;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(61,240,255,0.08), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0px, transparent 1px, transparent 38px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0px, transparent 1px, transparent 38px),
+      var(--bg);
+    transition: background 0.4s ease;
+  }
+  #wrap.world2 {
+    background:
+      radial-gradient(circle at 50% 0%, rgba(178,61,255,0.10), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0px, transparent 1px, transparent 38px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0px, transparent 1px, transparent 38px),
+      var(--bg);
+  }
+  #wrap.world3 {
+    background:
+      radial-gradient(circle at 50% 0%, rgba(255,175,90,0.10), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0px, transparent 1px, transparent 38px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0px, transparent 1px, transparent 38px),
+      var(--bg);
+  }
+  #wrap.world4 {
+    background:
+      radial-gradient(circle at 50% 0%, rgba(255,111,181,0.11), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0px, transparent 1px, transparent 38px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0px, transparent 1px, transparent 38px),
+      var(--bg);
+  }
+  #modeLegend { display: none; align-items: center; gap: 6px; }
+  #modeLegend.show { display: flex; }
+  #modeLegend canvas { width: 22px; height: 22px; }
+  #modeLegend b { font-weight: 700; letter-spacing: 0.5px; color: #8ff5dd; }
+  #modeLegend.pulse { animation: modePulse .45s ease-out; }
+  @keyframes modePulse { 0% { transform: scale(1.35); filter: brightness(1.8); } 100% { transform: scale(1); filter: none; } }
+  #levelHint {
+    position: absolute; top: 84px; left: 0; right: 0; text-align: center; z-index: 5;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.3px; color: #8ff5dd; pointer-events: none;
+    padding: 0 24px; text-shadow: 0 0 8px rgba(94,242,208,0.35);
+  }
+  #introCard {
+    background: linear-gradient(180deg,#15151f,#0d0d14); border: 1px solid var(--glass-border);
+    border-radius: 22px; padding: 22px 26px 24px; text-align: center; color: #eee;
+    width: min(340px, 88vw); box-shadow: 0 0 40px rgba(0,0,0,0.6);
+  }
+  #introCanvas { width: 240px; height: 136px; display: block; margin: 0 auto 12px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); max-width: 100%; }
+  #introButtons { display: flex; justify-content: center; gap: 10px; align-items: center; }
+  #introTitle { font-family: 'Bungee', sans-serif; font-size: 18px; color: #fff; margin-bottom: 8px; }
+  #introText { font-size: 14px; line-height: 1.5; color: #c9d0e0; margin-bottom: 14px; min-height: 64px; }
+  #introDots { display: flex; justify-content: center; gap: 6px; margin-bottom: 14px; min-height: 6px; }
+  #introDots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.25); }
+  #introDots i.on { background: #fff; }
+  html, body { position: fixed; inset: 0; width: 100%; overscroll-behavior: none; -webkit-touch-callout: none; -webkit-text-size-adjust: 100%; }
+  @supports (height: 100dvh) { #wrap { height: 100dvh; } }
+  canvas { display: block; }
+  .float-orb {
+    position: absolute; border-radius: 50%; pointer-events: none;
+    filter: blur(2px); opacity: 0.5;
+    animation: drift 14s ease-in-out infinite;
+  }
+  @keyframes drift {
+    0%,100% { transform: translate(0,0) scale(1); }
+    33% { transform: translate(18px,-24px) scale(1.08); }
+    66% { transform: translate(-14px,16px) scale(0.94); }
+  }
+  .screen {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: #eee;
+  }
+  .hidden { display: none !important; }
+
+  h1.logo {
+    font-family: 'Bungee', sans-serif;
+    font-size: 46px; margin: 0 0 4px; letter-spacing: 1px; font-weight: 700;
+    color: #fff;
+    text-shadow: 0 0 8px var(--cyan), 0 0 24px rgba(61,240,255,0.6), 0 0 46px rgba(182,255,61,0.35);
+    animation: pulse 2.2s ease-in-out infinite, wobble 3.6s ease-in-out infinite;
+    transform-origin: center;
+  }
+  @keyframes wobble {
+    0%,100% { transform: rotate(-1.2deg); }
+    50% { transform: rotate(1.2deg); }
+  }
+  @keyframes pulse {
+    0%,100% { text-shadow: 0 0 8px var(--cyan), 0 0 24px rgba(61,240,255,0.6), 0 0 46px rgba(182,255,61,0.3); }
+    50% { text-shadow: 0 0 14px var(--green), 0 0 34px rgba(182,255,61,0.7), 0 0 60px rgba(61,240,255,0.4); }
+  }
+  .tag {
+    color: #8a95a3; font-size: 14px; margin-bottom: 34px; letter-spacing: 1px;
+    font-weight: 600;
+  }
+  .bigbtn {
+    font-family: 'Bungee', sans-serif;
+    background: linear-gradient(180deg, var(--green), #6fd12a);
+    color: #08130a; border: none; border-radius: 22px;
+    padding: 16px 44px; font-size: 19px; font-weight: 700; letter-spacing: 0.5px;
+    margin: 8px;
+    box-shadow: 0 0 0 rgba(0,0,0,0), 0 5px 0 #3f8a12, 0 0 24px rgba(182,255,61,0.5);
+    transition: transform .12s cubic-bezier(.34,1.56,.64,1), box-shadow .12s;
+  }
+  .bigbtn:hover { transform: translateY(-2px) scale(1.03); }
+  .bigbtn:active { transform: translateY(3px) scale(0.98); box-shadow: 0 1px 0 #3f8a12, 0 0 14px rgba(182,255,61,0.4); }
+  .bigbtn.ghost {
+    background: var(--glass); color: #cfe; box-shadow: 0 4px 0 rgba(0,0,0,0.4);
+    border: 1px solid var(--glass-border);
+  }
+
+  #mapWrap {
+    width: 100%; max-width: 420px; height: 60vh;
+    overflow-y: auto; overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  #mapCanvas { display: block; touch-action: pan-y; }
+
+
+  #hud {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 16px; color: #dfe6ee; font-size: 13px; z-index: 5;
+  }
+  #hud button {
+    background: var(--glass); border: 1px solid var(--glass-border); color: #eee;
+    border-radius: 10px; padding: 7px 14px; font-size: 13px; font-weight: 600;
+  }
+  #hud { gap: 6px; }
+  #hud button { padding: 7px 11px; }
+  #hud button#undoBtn { font-size: 16px; line-height: 1; padding: 6px 11px; }
+  #hud button#undoBtn:disabled { opacity: 0.35; }
+  #levelLabel { padding: 6px 12px !important; }
+  #hud button#hintBtn { color: #ffd76a; border-color: rgba(255,207,61,0.45); }
+  #hud button#hintBtn:active { background: rgba(255,207,61,0.18); }
+  #levelLabel {
+    font-family: 'Quicksand', sans-serif;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    padding: 6px 16px; border-radius: 20px; font-weight: 700; letter-spacing: 1px;
+    color: #cfe; text-shadow: 0 0 8px rgba(61,240,255,0.5);
+  }
+  #moveLabel {
+    font-family: 'Quicksand', sans-serif;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    padding: 7px 14px; border-radius: 10px; font-weight: 600;
+  }
+
+  #legend {
+    position: absolute; top: 54px; left: 0; right: 0;
+    display: flex; justify-content: center; gap: 18px; z-index: 5;
+    font-size: 12px; font-weight: 600; color: #9aa5b3;
+  }
+  #legend span { display: flex; align-items: center; gap: 5px; }
+  #legend .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  #guidedSkip {
+    position: absolute; top: 52px; right: 14px; z-index: 6;
+    background: var(--glass); border: 1px solid var(--glass-border); color: #cfd8e3;
+    border-radius: 10px; padding: 5px 10px; font-size: 11px; font-weight: 600;
+  }
+  #swipeHint {
+    position: absolute; bottom: 26px; left: 0; right: 0; text-align: center;
+    color: #6a7484; font-size: 12px; font-weight: 600; letter-spacing: 1px;
+    z-index: 5; pointer-events: none;
+    animation: hintFade 2.6s ease-in-out infinite;
+  }
+  @keyframes hintFade {
+    0%,100% { opacity: 0.35; }
+    50% { opacity: 0.75; }
+  }
+  #miniPad {
+    position: absolute; bottom: 16px; left: 0; right: 0; z-index: 5;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .mpBtn {
+    width: 46px; height: 46px; border-radius: 12px;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    color: #cfe; font-size: 17px;
+    box-shadow: 0 0 8px rgba(61,240,255,0.1);
+  }
+  .mpBtn:active {
+    background: rgba(61,240,255,0.18);
+    box-shadow: 0 0 14px rgba(61,240,255,0.35);
+  }
+
+  #winPanel {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(4,4,8,0.82); z-index: 10;
+    backdrop-filter: blur(3px);
+  }
+  #winCardOuter {
+    position: relative; border-radius: 28px;
+    animation: cardPop .4s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes cardPop {
+    0% { transform: scale(0.85); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  #winCard {
+    position: relative; overflow: hidden;
+    background:
+      radial-gradient(circle at 50% 18%, rgba(182,255,61,0.22), transparent 60%),
+      linear-gradient(180deg, #15151f, #0d0d14);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 28px; padding: 42px 50px;
+    text-align: center; color: #eee;
+    box-shadow: 0 0 60px rgba(182,255,61,0.15);
+  }
+  #winBadge {
+    width: 76px; height: 76px; margin: 0 auto 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #d4ffa0, var(--green) 70%);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 44px rgba(182,255,61,0.65);
+    animation: badgePop .5s .1s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  @keyframes badgePop {
+    0% { transform: scale(0); }
+    100% { transform: scale(1); }
+  }
+  #winTitle {
+    font-family: 'Bungee', sans-serif;
+    font-size: 32px; letter-spacing: 1px;
+    color: #fff; text-shadow: 0 0 18px var(--green);
+    animation: titleIn .5s .2s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  @keyframes titleIn {
+    0% { opacity: 0; transform: translateY(10px) scale(0.92); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  #winStars { font-size: 40px; margin: 16px 0; letter-spacing: 9px; color: var(--amber); }
+  #winStars .star {
+    display: inline-block; opacity: 0; transform: scale(0.3);
+    text-shadow: 0 0 14px rgba(255,207,61,0.75);
+    animation: starPop .4s cubic-bezier(.34,1.56,.64,1) forwards;
+  }
+  @keyframes starPop { to { opacity: 1; transform: scale(1); } }
+  #winMoves { font-family: 'Quicksand', sans-serif; font-weight: 600; color: #9aa5b3; font-size: 14px; margin-bottom: 24px; }
+
+  #deathMsg {
+    font-family: 'Bungee', sans-serif;
+    position: absolute; top: 40%; left: 0; right: 0; text-align: center;
+    color: var(--red); font-size: 19px; font-weight: 700; z-index: 6; pointer-events: none;
+    text-shadow: 0 0 14px rgba(255,61,90,0.7);
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+
+  <div id="titleScreen" class="screen">
+    <div class="float-orb" style="width:70px;height:70px;top:14%;left:12%;background:radial-gradient(circle at 35% 35%, #b6ff3d, rgba(182,255,61,0));animation-delay:0s;"></div>
+    <div class="float-orb" style="width:50px;height:50px;top:70%;right:14%;background:radial-gradient(circle at 35% 35%, #3df0ff, rgba(61,240,255,0));animation-delay:-4s;"></div>
+    <div class="float-orb" style="width:34px;height:34px;top:22%;right:18%;background:radial-gradient(circle at 35% 35%, #3df0ff, rgba(61,240,255,0));animation-delay:-8s;"></div>
+    <div class="float-orb" style="width:44px;height:44px;bottom:16%;left:18%;background:radial-gradient(circle at 35% 35%, #b6ff3d, rgba(182,255,61,0));animation-delay:-11s;"></div>
+    <h1 class="logo">Mirror Maze</h1>
+    <div class="tag">one move, two minds</div>
+    <button class="bigbtn" id="playBtn">Play</button>
+    <button id="settingsBtn" style="background:var(--glass);border:1px solid var(--glass-border);color:#9aa5b3;border-radius:14px;padding:9px 20px;margin-top:6px;font-family:'Quicksand',sans-serif;font-weight:600;font-size:13px;">Settings</button>
+  </div>
+
+  <div id="settingsPanel" class="hidden" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(4,4,8,0.85);z-index:20;">
+    <div style="background:linear-gradient(180deg,#15151f,#0d0d14);border:1px solid var(--glass-border);border-radius:22px;padding:30px 34px;text-align:center;color:#eee;min-width:260px;">
+      <div style="font-family:'Bungee',sans-serif;font-size:18px;margin-bottom:18px;color:#fff;">Controls</div>
+      <div id="controlOptions" style="display:flex;flex-direction:column;gap:10px;margin-bottom:22px;">
+        <button class="ctrlOpt bigbtn ghost" data-scheme="swipe" style="font-size:14px;padding:12px 20px;">Swipe</button>
+        <button class="ctrlOpt bigbtn ghost" data-scheme="tap" style="font-size:14px;padding:12px 20px;">Tap Zones</button>
+        <button class="ctrlOpt bigbtn ghost" data-scheme="dpad" style="font-size:14px;padding:12px 20px;">D-Pad</button>
+      </div>
+      <button class="bigbtn ghost" id="howBtn" style="font-size:14px;padding:12px 20px;margin-bottom:12px;">How to play</button><br>
+      <button class="bigbtn ghost" id="resetBtn" style="font-size:14px;padding:12px 20px;margin-bottom:12px;">Reset progress</button><br>
+      <button class="bigbtn" id="settingsCloseBtn" style="font-size:14px;">Done</button>
+    </div>
+  </div>
+
+  <div id="introPanel" class="hidden" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(4,4,8,0.82);z-index:30;">
+    <div id="introCard">
+      <canvas id="introCanvas" width="480" height="272"></canvas>
+      <div id="introTitle"></div>
+      <div id="introText"></div>
+      <div id="introDots"></div>
+      <div id="introButtons">
+        <button class="bigbtn ghost" id="introSkip" style="font-size:13px;padding:10px 18px;">Skip</button>
+        <button class="bigbtn" id="introNext" style="font-size:14px;">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="selectScreen" class="screen hidden" style="justify-content:flex-start;padding-top:8vh;">
+    <h1 id="worldTitle" style="font-family:'Bungee',sans-serif;font-size:26px;letter-spacing:0.5px;color:#cfe;text-shadow:0 0 10px rgba(61,240,255,0.5);margin-bottom:6px;">World 1</h1>
+    <div id="worldTabs" style="display:flex;gap:6px;margin-bottom:16px;">
+      <button class="bigbtn ghost" id="worldTab1" style="padding:9px 14px;font-size:12px;">World 1</button>
+      <button class="bigbtn ghost" id="worldTab2" style="padding:9px 14px;font-size:12px;">World 2</button>
+      <button class="bigbtn ghost" id="worldTab3" style="display:none;padding:9px 14px;font-size:12px;">World 3</button>
+      <button class="bigbtn ghost" id="worldTab4" style="display:none;padding:9px 14px;font-size:12px;">World 4</button>
+    </div>
+    <div id="mapWrap">
+      <canvas id="mapCanvas"></canvas>
+    </div>
+    <button class="bigbtn ghost" id="backBtn" style="margin-top:10px;">Back</button>
+  </div>
+
+  <div id="gameScreen" class="screen hidden">
+    <div id="hud">
+      <button id="menuBtn">☰</button>
+      <div id="levelLabel"></div>
+      <button id="hintBtn">Hint</button>
+      <button id="undoBtn" title="Undo last move" aria-label="Undo last move" disabled>↶</button>
+      <div id="moveLabel">0 moves</div>
+    </div>
+    <div id="legend">
+      <span><i class="dot" style="background:var(--green);box-shadow:0 0 8px var(--green);"></i>you</span>
+      <span><i class="dot" style="background:var(--mirror);box-shadow:0 0 8px var(--mirror);"></i>mirror</span>
+      <span id="modeLegend"><canvas id="modeCanvas" width="44" height="44"></canvas><b id="modeName">MIRROR</b></span>
+    </div>
+    <div id="levelHint"></div>
+    <button id="guidedSkip" class="hidden">Skip tutorial ›</button>
+    <canvas id="c"></canvas>
+    <div id="deathMsg"></div>
+    <div id="swipeHint">swipe to move</div>
+    <div id="miniPad" class="hidden">
+      <button class="mpBtn" id="mpUp">▲</button>
+      <div style="display:flex;gap:44px;">
+        <button class="mpBtn" id="mpLeft">◀</button>
+        <button class="mpBtn" id="mpRight">▶</button>
+      </div>
+      <button class="mpBtn" id="mpDown">▼</button>
+    </div>
+    <div id="winPanel" class="hidden">
+      <div id="winCardOuter">
+        <div id="winCard">
+          <div id="winBadge">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
+              <path d="M4 12.5L9.5 18L20 6" stroke="#08130a" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div id="winTitle">Solved</div>
+          <div id="winStars"></div>
+          <div id="winMoves"></div>
+          <button class="bigbtn" id="nextBtn">Next</button>
+          <button class="bigbtn ghost" id="retryBtn">Retry</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ---------- Audio ---------- */
+let actx;
+function beep(freq, dur, type='sine', vol=0.08) {
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator();
+    const g = actx.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.value = vol;
+    o.connect(g); g.connect(actx.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur);
+    o.stop(actx.currentTime + dur);
+  } catch(e) {}
+}
+function sweep(f1, f2, dur, type='sine', vol=0.07) {
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator();
+    const g = actx.createGain();
+    o.type = type; o.frequency.setValueAtTime(f1, actx.currentTime);
+    o.frequency.linearRampToValueAtTime(f2, actx.currentTime + dur);
+    g.gain.value = vol;
+    o.connect(g); g.connect(actx.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur);
+    o.stop(actx.currentTime + dur);
+  } catch(e) {}
+}
+function noiseBurst(dur, vol=0.06, filterFreq=1200) {
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    const bufferSize = actx.sampleRate * dur;
+    const buffer = actx.createBuffer(1, bufferSize, actx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = (Math.random()*2-1) * (1 - i/bufferSize);
+    const src = actx.createBufferSource();
+    src.buffer = buffer;
+    const filt = actx.createBiquadFilter();
+    filt.type = 'bandpass'; filt.frequency.value = filterFreq;
+    const g = actx.createGain();
+    g.gain.value = vol;
+    src.connect(filt); filt.connect(g); g.connect(actx.destination);
+    src.start();
+  } catch(e) {}
+}
+function sndMove() { beep(340, 0.06, 'sine', 0.05); }
+function sndBlocked() { beep(140, 0.08, 'square', 0.04); }
+function sndWin() { beep(560, 0.12, 'sine', 0.09); setTimeout(()=>beep(840,0.18,'sine',0.09), 90); setTimeout(()=>beep(1120,0.2,'sine',0.07), 170); }
+function sndDeath() { beep(110, 0.3, 'sawtooth', 0.07); }
+function sndTeleport() {
+  sweep(420, 1300, 0.28, 'sine', 0.05);
+  sweep(1100, 380, 0.28, 'triangle', 0.03);
+  setTimeout(() => beep(1500, 0.1, 'sine', 0.04), 230);
+}
+function sndSwitch() { beep(260, 0.05, 'square', 0.05); beep(180, 0.07, 'square', 0.04); }
+function sndDoorOpen() { beep(920, 0.1, 'triangle', 0.06); }
+function sndShift() { sweep(420, 820, 0.16, 'triangle', 0.05); setTimeout(() => beep(1040, 0.06, 'sine', 0.04), 120); }
+function sndClick() { beep(700, 0.03, 'sine', 0.03); }
+function vib(pattern) { if (navigator.vibrate) navigator.vibrate(pattern); }
+
+// iOS Safari keeps audio suspended until it is resumed inside a touchend/click handler
+function unlockAudio() {
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+    const b = actx.createBuffer(1, 1, 22050), s = actx.createBufferSource();
+    s.buffer = b; s.connect(actx.destination); s.start(0);
+  } catch (e) {}
+}
+['touchend', 'click', 'pointerup', 'keydown'].forEach(ev => document.addEventListener(ev, unlockAudio, { passive: true }));
+document.addEventListener('visibilitychange', () => { if (!document.hidden && actx && actx.state === 'suspended') actx.resume(); });
+
+/* ---------- Ambient background drone ---------- */
+let ambientNodes = null;
+function startAmbient() {
+  if (ambientNodes) return;
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    const o1 = actx.createOscillator();
+    const o2 = actx.createOscillator();
+    const g = actx.createGain();
+    const lfo = actx.createOscillator();
+    const lfoGain = actx.createGain();
+    o1.type = 'sine'; o1.frequency.value = 55;
+    o2.type = 'sine'; o2.frequency.value = 82.5;
+    lfo.type = 'sine'; lfo.frequency.value = 0.08;
+    lfoGain.gain.value = 0.006;
+    lfo.connect(lfoGain); lfoGain.connect(g.gain);
+    g.gain.value = 0.018;
+    o1.connect(g); o2.connect(g); g.connect(actx.destination);
+    o1.start(); o2.start(); lfo.start();
+    ambientNodes = { o1, o2, lfo, g };
+  } catch(e) {}
+}
+function stopAmbient() {
+  if (!ambientNodes) return;
+  try {
+    const { o1, o2, lfo, g } = ambientNodes;
+    g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.4);
+    setTimeout(() => { try { o1.stop(); o2.stop(); lfo.stop(); } catch(e){} }, 450);
+  } catch(e) {}
+  ambientNodes = null;
+}
+
+/* ---------- Level format ----------
+   chars: . floor  # wall  S switch  D door  h hazard-horiz  v hazard-vert
+          t/u teleporter pair  g green start  b blue start  G green goal  B blue goal
+*/
+const LEVELS_DATA = [
+{ name:"1-1", par:3, hint:"Green and blue always move in opposite directions.", rows:[
+  ".b..B",".....",".....",".....","G..g.",
+]},
+{ name:"1-2", par:3, hint:"One swipe moves both balls. Get each one onto its own goal ring.", rows:[
+  "#.G..","....g",".....",".b...","...B.",
+]},
+{ name:"1-3", par:4, rows:[
+  ".gB..",".....",".....","..Gb#","....#",
+]},
+{ name:"1-4", par:5, rows:[
+  "G.b..",".....",".....","....#",".g.B.",
+]},
+{ name:"1-5", par:5, hint:"If a ball hits a wall, only that ball stays put. The other keeps moving.", rows:[
+  "..#..",".G..g",".....","...B.","b..#.",
+]},
+{ name:"1-6", par:5, hint:"Sometimes the shortest way starts by stepping away from the goal.", intro:"detour", rows:[
+  ".B#b.",".....","g....","..G.#","...#.",
+]},
+{ name:"1-7", par:6, hint:"Walls are tools. Use one to hold a ball while the other catches up.", rows:[
+  "G.#..","..#b.",".#...",".....","##g.B",
+]},
+{ name:"1-8", par:4, hint:"Stand a ball on the pad to open the door.", rows:[
+  ".....",".....",".###.","D..gB","G#.bS",
+]},
+{ name:"1-9", par:6, rows:[
+  "..#.g","..#G.","B....","b....","..#..",
+]},
+{ name:"1-10", par:7, rows:[
+  "...G..","..b...","...B#.","...#g.","##.#..",
+]},
+{ name:"1-11", par:7, rows:[
+  "###...",".g.#..",".....G","B.....","....#.","#..b.#",
+]},
+{ name:"1-12", par:6, hint:"One ball can hold the pad while the other walks through.", rows:[
+  ".#g..",".....","#D###",".G.B.","#..bS",
+]},
+{ name:"1-13", par:6, rows:[
+  "....g","##D##",".#..B","..G#S","....b",
+]},
+{ name:"1-14", par:5, hint:"The door closes again as soon as nobody is on the pad.", rows:[
+  ".G...","D####","g..#.",".....","..BbS",
+]},
+{ name:"1-15", par:8, rows:[
+  "#.#..B","#....#","#...##","..#.gb","......",".#G...",
+]},
+];
+
+const LEVELS_DATA_2 = [
+{ name:"2-1", par:9, rows:[
+  ".....g","#....#","#.#G.B",".#..#.","......","b..##.",
+]},
+{ name:"2-2", par:8, hint:"Sometimes you have to waste a move against a wall to line them up.", rows:[
+  "......","#...g.","#..b.G","......",".#B.##",".#...#",
+]},
+{ name:"2-3", par:10, rows:[
+  "#.....g","......#","B.##...",".##..#.",".....#.","##....#","b...G..",
+]},
+{ name:"2-4", par:7, hint:"Doors and walls together: plan which ball does which job.", rows:[
+  ".#.#.#",".#....",".#B#..","bD.S#.",".#.gG.",
+]},
+{ name:"2-5", par:9, rows:[
+  "##....","##.#..","##..g.","##...S","bDB.#.","###.G.",
+]},
+{ name:"2-6", par:8, rows:[
+  ".#..#S","...Gb.","....B.","###D##","..g..#",
+]},
+{ name:"2-7", par:9, rows:[
+  "....##",".....#","#D####","GB#S.#",".b.g#.",".##...",
+]},
+{ name:"2-8", par:10, rows:[
+  "....B..","..##.##","#g.#Gb.","..###..",".##....",".......",
+]},
+{ name:"2-9", par:8, rows:[
+  "#.#b#.","S.B.D.","..#G#.","....#g","...##.",
+]},
+{ name:"2-10", par:10, rows:[
+  "..#.B#","#.#..b","..#...","..##S.","..D.#.",".G#.g.",
+]},
+{ name:"2-11", par:10, rows:[
+  "..#.#..","..#B.b.",".##.S..","g.#.G..","..D.#.#","#.##...",
+]},
+{ name:"2-12", par:11, rows:[
+  "..b#.##","..S....","...#...","B..#g.#","#####D#","#....G.",
+]},
+{ name:"2-13", par:13, rows:[
+  ".##.b.#",".#.#G.g",".D..S##","B#.....",".##...#",".###...","###....",
+]},
+{ name:"2-14", par:12, rows:[
+  "....###","..b.S..","#.#BG..","###D###",".....#.",".....g.","##.....",
+]},
+{ name:"2-15", par:12, rows:[
+  ".#..##.",".#.....",".#.G...",".D.#..#",".##....",".##B...","g#S.b.#",
+]},
+];
+
+// Worlds 3-5 are being rebuilt for the slower pacing plan (W3 teleporters+one-way, W4 saw blades, W5 shift tiles)
+const LEVELS_DATA_3 = [];
+const LEVELS_DATA_4 = [];
+
+/* ---------- Level parsing ---------- */
+const ONEWAY_DIRS = { '>': {x:1,y:0}, '<': {x:-1,y:0}, '^': {x:0,y:-1}, 'V': {x:0,y:1} };
+
+function parseLevel(def) {
+  const rows = def.rows;
+  const h = rows.length, w = rows[0].length;
+  const walls = new Set(), switches = [], doors = new Set();
+  const hazards = [];
+  const oneway = {};
+  const freeze = new Set();
+  const shift = {};
+  let teleA = null, teleB = null;
+  let greenStart, blueStart, greenGoal, blueGoal;
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const ch = rows[y][x];
+      const key = x + ',' + y;
+      if (ch === '#') walls.add(key);
+      else if (ch === 'S') switches.push({x,y});
+      else if (ch === 'D') doors.add(key);
+      else if (ch === 'h') hazards.push({x,y,axis:'h',dir:1});
+      else if (ch === 'v') hazards.push({x,y,axis:'v',dir:1});
+      else if (ch === 't') teleA = {x,y};
+      else if (ch === 'u') teleB = {x,y};
+      else if (ch === 'g') greenStart = {x,y};
+      else if (ch === 'b') blueStart = {x,y};
+      else if (ch === 'G') greenGoal = {x,y};
+      else if (ch === 'B') blueGoal = {x,y};
+      else if (ch === 'F') freeze.add(key);
+      else if (ch === '1' || ch === '2' || ch === '3') shift[key] = +ch;
+      else if (ONEWAY_DIRS[ch]) oneway[key] = ONEWAY_DIRS[ch];
+    }
+  }
+  return { w, h, walls, switches, doors, hazards, oneway, freeze, shift, teleA, teleB, greenStart, blueStart, greenGoal, blueGoal, name: def.name, par: def.par, hint: def.hint || '', intro: def.intro || '' };
+}
+
+/* ---------- Game state ---------- */
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let currentWorld = 1;
+let unlockedByWorld = { 1: 1, 2: 1, 3: 1, 4: 1 };
+let starsByWorld = { 1: {}, 2: {}, 3: {}, 4: {} };
+let unlocked = 1;   // mirrors unlockedByWorld[currentWorld]
+let stars = {};      // mirrors starsByWorld[currentWorld]
+function activeLevels() { return currentWorld === 4 ? LEVELS_DATA_4 : currentWorld === 3 ? LEVELS_DATA_3 : currentWorld === 2 ? LEVELS_DATA_2 : LEVELS_DATA; }
+
+const SAVE_KEY = 'mirrorMazeSave_v1';
+const LEVEL_SET = 7;   // bump when levels are redesigned so old stars/unlocks are not applied to new levels
+let seenIntros = {};
+let introOpen = false;
+
+function saveProgress() {
+  try {
+    unlockedByWorld[currentWorld] = unlocked;
+    starsByWorld[currentWorld] = stars;
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      unlockedByWorld, starsByWorld, controlScheme, controlChosen, seenIntros, levelSet: LEVEL_SET
+    }));
+  } catch(e) {}
+}
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (data.levelSet === LEVEL_SET) {
+      if (data.unlockedByWorld) Object.assign(unlockedByWorld, data.unlockedByWorld);
+      if (data.starsByWorld) Object.assign(starsByWorld, data.starsByWorld);
+    }
+    if (data.controlScheme && data.controlChosen) { controlScheme = data.controlScheme; controlChosen = true; }
+    if (data.seenIntros) seenIntros = data.seenIntros;
+    unlocked = unlockedByWorld[currentWorld] || 1;
+    stars = starsByWorld[currentWorld] || {};
+  } catch(e) {}
+}
+
+function switchWorld(w) {
+  unlockedByWorld[currentWorld] = unlocked;
+  starsByWorld[currentWorld] = stars;
+  currentWorld = w;
+  unlocked = unlockedByWorld[currentWorld] || 1;
+  stars = starsByWorld[currentWorld] || {};
+  document.getElementById('wrap').classList.toggle('world2', currentWorld === 2);
+  document.getElementById('wrap').classList.toggle('world3', currentWorld === 3);
+  document.getElementById('wrap').classList.toggle('world4', currentWorld === 4);
+}
+
+let cur = null;
+let curIdx = 0;
+let green, blue;
+let greenV, blueV; // {x,y,vx,vy} spring-eased visual positions
+let greenTrail = [], blueTrail = [];
+let hazardsState = [];
+let hazardsV = [];
+let moves = 0;
+let dead = false;
+let won = false;
+let doorsOpenNow = false;
+let flashAlpha = 0;
+let switchPulses = [];
+let doorPortals = [];
+let particles = [];
+let shake = 0;
+let squashGreen = 0, squashBlue = 0;
+let greenFacing = {x:1,y:0}, blueFacing = {x:-1,y:0};
+
+// Mirror shift: how the blue ball answers the player's input.
+// 0 full mirror (-dx,-dy)  1 flip left/right only (-dx,+dy)  2 flip up/down only (+dx,-dy)  3 sync (+dx,+dy)
+let mirrorMode = 0;
+let doorAnim = 0;   // 0 closed .. 1 open, eased for the door drawing
+// portal travel animation per ball: { from, to, t0 } while a ball is passing through a portal
+let tpFx = { green: null, blue: null };
+const MODE_NAMES = ['MIRROR', 'SIDE FLIP', 'VERT FLIP', 'SYNC'];
+function mirrorDir(dx, dy) {
+  switch (mirrorMode) {
+    case 1: return { x: -dx, y: dy };
+    case 2: return { x: dx, y: -dy };
+    case 3: return { x: dx, y: dy };
+    default: return { x: -dx, y: -dy };
+  }
+}
+// glyphs: 0 arrows out on both axes, 1 vertical axis + left/right arrows, 2 horizontal axis + up/down arrows, 3 double chevron
+function drawModeGlyph(c, cx, cy, s, mode, color, lw) {
+  c.save();
+  c.translate(cx, cy);
+  c.strokeStyle = color; c.fillStyle = color; c.lineWidth = lw; c.lineCap = 'round'; c.lineJoin = 'round';
+  const head = (x, y, ang, k) => {
+    c.save(); c.translate(x, y); c.rotate(ang);
+    c.beginPath(); c.moveTo(-k, -k); c.lineTo(0, 0); c.lineTo(-k, k); c.stroke();
+    c.restore();
+  };
+  if (mode === 0) {
+    c.beginPath(); c.moveTo(-s, 0); c.lineTo(s, 0); c.moveTo(0, -s); c.lineTo(0, s); c.stroke();
+    head(s, 0, 0, s*0.4); head(-s, 0, Math.PI, s*0.4); head(0, -s, -Math.PI/2, s*0.4); head(0, s, Math.PI/2, s*0.4);
+  } else if (mode === 1) {
+    c.globalAlpha = 0.5; c.beginPath(); c.moveTo(0, -s); c.lineTo(0, s); c.stroke(); c.globalAlpha = 1;
+    c.beginPath(); c.moveTo(-s*0.9, 0); c.lineTo(-s*0.2, 0); c.moveTo(s*0.9, 0); c.lineTo(s*0.2, 0); c.stroke();
+    head(-s*0.2, 0, 0, s*0.38); head(s*0.2, 0, Math.PI, s*0.38);
+  } else if (mode === 2) {
+    c.globalAlpha = 0.5; c.beginPath(); c.moveTo(-s, 0); c.lineTo(s, 0); c.stroke(); c.globalAlpha = 1;
+    c.beginPath(); c.moveTo(0, -s*0.9); c.lineTo(0, -s*0.2); c.moveTo(0, s*0.9); c.lineTo(0, s*0.2); c.stroke();
+    head(0, -s*0.2, Math.PI/2, s*0.38); head(0, s*0.2, -Math.PI/2, s*0.38);
+  } else {
+    c.beginPath(); c.moveTo(-s*0.9, -s*0.45); c.lineTo(s*0.5, -s*0.45); c.moveTo(-s*0.9, s*0.45); c.lineTo(s*0.5, s*0.45); c.stroke();
+    head(s*0.9, -s*0.45, 0, s*0.38); head(s*0.9, s*0.45, 0, s*0.38);
+  }
+  c.restore();
+}
+function updateModeBadge(pulse) {
+  const legend = document.getElementById('modeLegend');
+  const show = cur && Object.keys(cur.shift).length > 0;
+  legend.classList.toggle('show', !!show);
+  if (!show) return;
+  document.getElementById('modeName').textContent = MODE_NAMES[mirrorMode];
+  const mc = document.getElementById('modeCanvas').getContext('2d');
+  mc.clearRect(0, 0, 44, 44);
+  drawModeGlyph(mc, 22, 22, 15, mirrorMode, '#8ff5dd', 2.6);
+  if (pulse) { legend.classList.remove('pulse'); void legend.offsetWidth; legend.classList.add('pulse'); }
+}
+
+let undoStack = [];
+function updateUndoBtn() { document.getElementById('undoBtn').disabled = !undoStack.length || won; }
+function pushUndo(s) { undoStack.push(s); if (undoStack.length > 300) undoStack.shift(); updateUndoBtn(); }
+function undoMove() {
+  if (!cur || won || introOpen || !undoStack.length) return;
+  const s = undoStack.pop();
+  green = { ...s.green }; blue = { ...s.blue };
+  mirrorMode = s.mirror; updateModeBadge(false);
+  hazardsState = s.hz.map(h => ({ ...h }));
+  moves = s.moves;
+  document.getElementById('moveLabel').textContent = moves + (moves === 1 ? ' move' : ' moves');
+  dead = false; shake = 0;
+  document.getElementById('deathMsg').textContent = '';
+  tpFx.green = null; tpFx.blue = null;
+  greenTrail = []; blueTrail = [];
+  clearHint();
+  sndClick();
+  updateUndoBtn();
+  if (guidedActive) setTimeout(updateGuided, 60);
+}
+let hintShow = null;   // {dx,dy,until} while a hint arrow is displayed
+function clearHint() {
+  if (!hintShow) return;
+  hintShow = null;
+  document.getElementById('levelHint').textContent = cur ? (cur.hint || '') : '';
+}
+
+function loadLevel(idx) {
+  curIdx = idx;
+  hintShow = null;
+  undoStack = [];
+  cur = parseLevel(activeLevels()[idx]);
+  green = { ...cur.greenStart };
+  blue = { ...cur.blueStart };
+  greenV = { x: green.x, y: green.y, vx: 0, vy: 0 };
+  blueV = { x: blue.x, y: blue.y, vx: 0, vy: 0 };
+  greenTrail = []; blueTrail = [];
+  hazardsState = cur.hazards.map(h => ({...h, rotTarget: 0}));
+  hazardsV = hazardsState.map(h => ({x:h.x, y:h.y, rot:0}));
+  moves = 0;
+  dead = false;
+  won = false;
+  particles = [];
+  switchPulses = [];
+  doorPortals = [];
+  doorsOpenNow = false;
+  doorAnim = 0;
+  tpFx.green = null; tpFx.blue = null;
+  shake = 0;
+  mirrorMode = 0;
+  updateModeBadge(false);
+  document.getElementById('levelHint').textContent = cur.hint;
+  document.getElementById('levelLabel').textContent = cur.name;
+  document.getElementById('moveLabel').textContent = '0 moves';
+  document.getElementById('winPanel').classList.add('hidden');
+  document.getElementById('deathMsg').textContent = '';
+  guidedActive = guidedWanted();
+  updateGuided();
+  updateUndoBtn();
+  setTimeout(maybeShowIntros, 450);
+}
+
+function isSwitchActive() {
+  return cur.switches.some(s => (s.x===green.x&&s.y===green.y) || (s.x===blue.x&&s.y===blue.y));
+}
+
+function predictHazardDir(hz) {
+  // the stored dir reflects the direction of the LAST completed move;
+  // if continuing that direction would bounce, the NEXT move already goes the other way
+  if (hz.axis === 'h') {
+    const nx = hz.x + hz.dir;
+    if (nx < 0 || nx >= cur.w || cur.walls.has(nx+','+hz.y)) return -hz.dir;
+    return hz.dir;
+  } else {
+    const ny = hz.y + hz.dir;
+    if (ny < 0 || ny >= cur.h || cur.walls.has(hz.x+','+ny)) return -hz.dir;
+    return hz.dir;
+  }
+}
+
+function isOpen(x, y, switchActive, dx, dy) {
+  if (x < 0 || y < 0 || x >= cur.w || y >= cur.h) return false;
+  const key = x + ',' + y;
+  if (cur.walls.has(key)) return false;
+  if (cur.doors.has(key) && !switchActive) return false;
+  if (cur.oneway[key]) {
+    const req = cur.oneway[key];
+    if (req.x !== dx || req.y !== dy) return false;
+  }
+  return true;
+}
+
+function tryMove(dx, dy) {
+  if (dead || won || introOpen) return;
+  clearHint();
+  if (guidedActive) {
+    const gh = hintSolve();
+    if (gh && (dx !== gh.dx || dy !== gh.dy)) { guidedWrong(gh); return; }
+  }
+  tpFx.green = null; tpFx.blue = null;   // a new move cancels any portal animation still playing
+  const undoSnap = { green: { ...green }, blue: { ...blue }, mirror: mirrorMode, hz: hazardsState.map(h => ({ ...h })), moves };
+  const switchActive = isSwitchActive();
+  const greenFrozen = cur.freeze.has(blue.x + ',' + blue.y);
+  const blueFrozen = cur.freeze.has(green.x + ',' + green.y);
+  let movedAny = false;
+  const oldGreen = { ...green };
+  const oldBlue = { ...blue };
+
+  const ngx = green.x + dx, ngy = green.y + dy;
+  if (!greenFrozen && isOpen(ngx, ngy, switchActive, dx, dy)) { green.x = ngx; green.y = ngy; movedAny = true; squashGreen = 1; greenFacing = {x:dx,y:dy}; spawnSparkle(green.x, green.y, '#b6ff3d'); }
+  const bd = mirrorDir(dx, dy);
+  const nbx = blue.x + bd.x, nby = blue.y + bd.y;
+  let greenMoved = (green.x !== oldGreen.x || green.y !== oldGreen.y), blueMoved = false;
+  if (!blueFrozen && isOpen(nbx, nby, switchActive, bd.x, bd.y)) { blue.x = nbx; blue.y = nby; movedAny = true; blueMoved = true; squashBlue = 1; blueFacing = {x:bd.x,y:bd.y}; spawnSparkle(blue.x, blue.y, '#7a8bb8'); }
+
+  if (!movedAny) { sndBlocked(); shake = 4; return; }
+  pushUndo(undoSnap);
+  moves++;
+  document.getElementById('moveLabel').textContent = moves + ' moves';
+  sndMove();
+  vib(10);
+
+  // mirror shift tiles: set the mode when a ball moves onto one (green first, then blue)
+  {
+    const prevMode = mirrorMode;
+    if (greenMoved && cur.shift[green.x + ',' + green.y]) mirrorMode = cur.shift[green.x + ',' + green.y];
+    if (blueMoved && cur.shift[blue.x + ',' + blue.y]) mirrorMode = cur.shift[blue.x + ',' + blue.y];
+    if (mirrorMode !== prevMode) { sndShift(); vib(20); updateModeBadge(true); }
+  }
+
+  const oldHazards = hazardsState.map(h => ({x:h.x, y:h.y}));
+
+  for (const hz of hazardsState) {
+    let bounced = false;
+    if (hz.axis === 'h') {
+      let nx = hz.x + hz.dir;
+      if (nx < 0 || nx >= cur.w || cur.walls.has(nx+','+hz.y)) { hz.dir *= -1; nx = hz.x + hz.dir; bounced = true; }
+      hz.x = nx;
+    } else {
+      let ny = hz.y + hz.dir;
+      if (ny < 0 || ny >= cur.h || cur.walls.has(hz.x+','+ny)) { hz.dir *= -1; ny = hz.y + hz.dir; bounced = true; }
+      hz.y = ny;
+    }
+    hz.rotTarget += Math.PI / 2;
+  }
+
+  for (let i = 0; i < hazardsState.length; i++) {
+    const hz = hazardsState[i];
+    const oh = oldHazards[i];
+    // final-position overlap
+    const hitsGreen = (hz.x===green.x && hz.y===green.y);
+    const hitsBlue = (hz.x===blue.x && hz.y===blue.y);
+    // swap-crossing: hazard and player traded cells in the same move
+    const swapGreen = (oh.x===green.x && oh.y===green.y && hz.x===oldGreen.x && hz.y===oldGreen.y);
+    const swapBlue = (oh.x===blue.x && oh.y===blue.y && hz.x===oldBlue.x && hz.y===oldBlue.y);
+    if (hitsGreen || hitsBlue || swapGreen || swapBlue) {
+      triggerDeath();
+      return;
+    }
+  }
+
+  if (cur.teleA && cur.teleB) {
+    const portal = (who, p) => {
+      const dest = (p.x===cur.teleA.x && p.y===cur.teleA.y) ? cur.teleB
+                 : (p.x===cur.teleB.x && p.y===cur.teleB.y) ? cur.teleA : null;
+      if (!dest) return p;
+      tpFx[who] = { from: { x: p.x, y: p.y }, to: { x: dest.x, y: dest.y }, t0: Date.now() };
+      sndTeleport(); vib(14);
+      return { ...dest };
+    };
+    green = portal('green', green);
+    blue = portal('blue', blue);
+  }
+
+  checkWin();
+  updateUndoBtn();
+  if (guidedActive && !won) setTimeout(updateGuided, 140);
+}
+
+/* ---------- Free hint: solve from the CURRENT position with the same rules as tryMove ---------- */
+function hintMirror(m, dx, dy) {
+  switch (m) {
+    case 1: return { x: -dx, y: dy };
+    case 2: return { x: dx, y: -dy };
+    case 3: return { x: dx, y: dy };
+    default: return { x: -dx, y: -dy };
+  }
+}
+function hintKey(st) {
+  let k = st.gx + ',' + st.gy + '|' + st.bx + ',' + st.by + '|' + st.m;
+  for (const h of st.hz) k += '|' + h.x + ',' + h.y + ',' + h.dir;
+  return k;
+}
+// one move; returns null (nothing moved), 'dead', or the new state (with .win)
+function hintStep(st, dx, dy) {
+  const sw = cur.switches.some(q => (q.x===st.gx&&q.y===st.gy) || (q.x===st.bx&&q.y===st.by));
+  const gFrozen = cur.freeze.has(st.bx + ',' + st.by);
+  const bFrozen = cur.freeze.has(st.gx + ',' + st.gy);
+  let gx = st.gx, gy = st.gy, bx = st.bx, by = st.by, m = st.m;
+  let gMoved = false, bMoved = false;
+  if (!gFrozen && isOpen(gx + dx, gy + dy, sw, dx, dy)) { gx += dx; gy += dy; gMoved = true; }
+  const bd = hintMirror(m, dx, dy);
+  if (!bFrozen && isOpen(bx + bd.x, by + bd.y, sw, bd.x, bd.y)) { bx += bd.x; by += bd.y; bMoved = true; }
+  if (!gMoved && !bMoved) return null;
+  if (gMoved && cur.shift[gx + ',' + gy]) m = cur.shift[gx + ',' + gy];
+  if (bMoved && cur.shift[bx + ',' + by]) m = cur.shift[bx + ',' + by];
+  const oldH = st.hz.map(h => ({ x: h.x, y: h.y }));
+  const hz = st.hz.map(h => ({ x: h.x, y: h.y, dir: h.dir, axis: h.axis }));
+  for (const h of hz) {
+    if (h.axis === 'h') {
+      let nx = h.x + h.dir;
+      if (nx < 0 || nx >= cur.w || cur.walls.has(nx + ',' + h.y)) { h.dir *= -1; nx = h.x + h.dir; }
+      h.x = nx;
+    } else {
+      let ny = h.y + h.dir;
+      if (ny < 0 || ny >= cur.h || cur.walls.has(h.x + ',' + ny)) { h.dir *= -1; ny = h.y + h.dir; }
+      h.y = ny;
+    }
+  }
+  for (let i = 0; i < hz.length; i++) {
+    const h = hz[i], o = oldH[i];
+    if ((h.x===gx&&h.y===gy) || (h.x===bx&&h.y===by) ||
+        (o.x===gx&&o.y===gy&&h.x===st.gx&&h.y===st.gy) ||
+        (o.x===bx&&o.y===by&&h.x===st.bx&&h.y===st.by)) return 'dead';
+  }
+  if (cur.teleA && cur.teleB) {
+    const port = (x, y) => {
+      if (x===cur.teleA.x && y===cur.teleA.y) return { x: cur.teleB.x, y: cur.teleB.y };
+      if (x===cur.teleB.x && y===cur.teleB.y) return { x: cur.teleA.x, y: cur.teleA.y };
+      return { x, y };
+    };
+    const pg = port(gx, gy), pb = port(bx, by);
+    gx = pg.x; gy = pg.y; bx = pb.x; by = pb.y;
+  }
+  const win = gx===cur.greenGoal.x && gy===cur.greenGoal.y && bx===cur.blueGoal.x && by===cur.blueGoal.y;
+  return { gx, gy, bx, by, m, hz, win };
+}
+// BFS from the live state. Returns {dx,dy,left} for the first move of a shortest solution, or null.
+function hintSolve() {
+  const DIRS = [[0,-1],[0,1],[-1,0],[1,0]];
+  const start = { gx: green.x, gy: green.y, bx: blue.x, by: blue.y, m: mirrorMode,
+                  hz: hazardsState.map(h => ({ x: h.x, y: h.y, dir: h.dir, axis: h.axis })) };
+  const seen = new Set([hintKey(start)]);
+  let frontier = [{ st: start, first: null }];
+  for (let depth = 1; depth <= 80 && frontier.length && seen.size < 400000; depth++) {
+    const next = [];
+    for (const node of frontier) {
+      for (const [dx, dy] of DIRS) {
+        const r = hintStep(node.st, dx, dy);
+        if (!r || r === 'dead') continue;
+        const first = node.first || { dx, dy };
+        if (r.win) return { dx: first.dx, dy: first.dy, left: depth };
+        const k = hintKey(r);
+        if (seen.has(k)) continue;
+        seen.add(k);
+        next.push({ st: r, first });
+      }
+    }
+    frontier = next;
+  }
+  return null;
+}
+function showHint() {
+  if (!cur || won || introOpen) return;
+  const label = document.getElementById('levelHint');
+  if (dead) { label.textContent = 'Tap to retry first.'; return; }
+  const h = hintSolve();
+  if (!h) {
+    hintShow = null;
+    label.textContent = 'No way to finish from here. Press Retry.';
+    return;
+  }
+  const arrows = { '0,-1': '▲', '0,1': '▼', '-1,0': '◀', '1,0': '▶' };
+  hintShow = { dx: h.dx, dy: h.dy, until: Date.now() + 2600 };
+  label.textContent = 'Hint: ' + arrows[h.dx + ',' + h.dy] + '  ·  ' + h.left + (h.left === 1 ? ' move' : ' moves') + ' to finish';
+}
+
+/* ---------- Guided practice (World 1, levels 1-1 to 1-5) ---------- */
+let guidedActive = false;
+const GUIDED_LEVELS = 5;
+const DIR_NAMES = { '0,-1': 'up', '0,1': 'down', '-1,0': 'left', '1,0': 'right' };
+function guidedWanted() {
+  return currentWorld === 1 && curIdx < GUIDED_LEVELS && !(stars[curIdx] > 0) && !seenIntros['guided' + curIdx];
+}
+function guidedCaption(h) {
+  const sw = isSwitchActive();
+  const bd = hintMirror(mirrorMode, h.dx, h.dy);
+  const gOk = isOpen(green.x + h.dx, green.y + h.dy, sw, h.dx, h.dy);
+  const bOk = isOpen(blue.x + bd.x, blue.y + bd.y, sw, bd.x, bd.y);
+  const verb = controlScheme === 'dpad' ? 'Press' : controlScheme === 'tap' ? 'Tap' : 'Swipe';
+  const d = DIR_NAMES[h.dx + ',' + h.dy], bn = DIR_NAMES[bd.x + ',' + bd.y];
+  let msg;
+  if (gOk && bOk) msg = verb + ' ' + d + '. Green goes ' + d + ', blue goes ' + bn + '.';
+  else if (gOk) msg = verb + ' ' + d + '. Blue hits a wall and stays put while green moves.';
+  else msg = verb + ' ' + d + '. Green hits a wall and stays put while blue moves.';
+  return msg + '  (' + h.left + (h.left === 1 ? ' move' : ' moves') + ' left)';
+}
+function updateGuided() {
+  const btn = document.getElementById('guidedSkip');
+  btn.classList.toggle('hidden', !guidedActive);
+  if (!guidedActive || won || dead) return;
+  const h = hintSolve();
+  if (!h) { guidedActive = false; btn.classList.add('hidden'); return; }
+  hintShow = { dx: h.dx, dy: h.dy, until: Date.now() + 1e11 };
+  document.getElementById('levelHint').textContent = guidedCaption(h);
+}
+function guidedWrong(h) {
+  sndBlocked(); shake = 4;
+  hintShow = { dx: h.dx, dy: h.dy, until: Date.now() + 1e11 };
+  document.getElementById('levelHint').textContent = 'Follow the arrow: go ' + DIR_NAMES[h.dx + ',' + h.dy] + '.';
+}
+function endGuided(markAll) {
+  guidedActive = false;
+  if (markAll) for (let i = 0; i < GUIDED_LEVELS; i++) seenIntros['guided' + i] = true;
+  else seenIntros['guided' + curIdx] = true;
+  document.getElementById('guidedSkip').classList.add('hidden');
+  clearHint();
+  saveProgress();
+}
+document.getElementById('guidedSkip').addEventListener('click', () => { sndClick(); endGuided(true); });
+
+function triggerDeath() {
+  dead = true;
+  shake = 16;
+  sndDeath();
+  vib([40,30,40,30,60]);
+  document.getElementById('deathMsg').textContent = 'caught! tap to retry';
+}
+
+function checkWin() {
+  if (green.x===cur.greenGoal.x && green.y===cur.greenGoal.y &&
+      blue.x===cur.blueGoal.x && blue.y===cur.blueGoal.y) {
+    won = true;
+    sndWin();
+    vib([20,20,20,20,80]);
+    burstParticles(cur.greenGoal.x, cur.greenGoal.y, '#b6ff3d');
+    burstParticles(cur.blueGoal.x, cur.blueGoal.y, '#7a8bb8');
+
+    let s = 1;
+    if (moves <= cur.par) s = 3;
+    else if (moves <= cur.par + Math.ceil(cur.par * 0.25)) s = 2;
+    stars[curIdx] = Math.max(stars[curIdx] || 0, s);
+    if (guidedActive) endGuided(false);
+    if (curIdx + 1 >= unlocked && curIdx + 1 < activeLevels().length) unlocked = curIdx + 2;
+    saveProgress();
+
+    setTimeout(() => {
+      const starsEl = document.getElementById('winStars');
+      starsEl.innerHTML = '';
+      for (let i = 0; i < 3; i++) {
+        const sp = document.createElement('span');
+        sp.className = 'star';
+        sp.textContent = i < s ? '★' : '☆';
+        sp.style.animationDelay = (i * 0.12) + 's';
+        starsEl.appendChild(sp);
+      }
+      document.getElementById('winMoves').textContent = moves + ' moves · target ' + cur.par;
+      document.getElementById('nextBtn').style.display = (curIdx+1 < activeLevels().length) ? 'inline-block' : 'none';
+      document.getElementById('winPanel').classList.remove('hidden');
+    }, 350);
+  }
+}
+
+function spawnSparkle(gx, gy, color) {
+  for (let i = 0; i < 3; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 0.015 + Math.random() * 0.02;
+    particles.push({ x: gx+0.5, y: gy+0.5, vx: Math.cos(a)*sp, vy: Math.sin(a)*sp, life: 0.5, color });
+  }
+}
+
+function burstParticles(gx, gy, color) {
+  for (let i = 0; i < 22; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 0.035 + Math.random() * 0.06;
+    particles.push({ x: gx+0.5, y: gy+0.5, vx: Math.cos(a)*sp, vy: Math.sin(a)*sp, life: 1, color });
+  }
+}
+
+/* ---------- Rendering ---------- */
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight * 0.72;
+}
+resize();
+window.addEventListener('resize', resize);
+
+function springTo(v, target) {
+  const k = 0.32, damp = 0.72;
+  v.vx += (target.x - v.x) * k; v.vx *= damp; v.x += v.vx;
+  v.vy += (target.y - v.y) * k; v.vy *= damp; v.y += v.vy;
+  // clamp so the bounce can never visually swing into a neighboring cell
+  const MAX_OFFSET = 0.28;
+  v.x = Math.max(target.x - MAX_OFFSET, Math.min(target.x + MAX_OFFSET, v.x));
+  v.y = Math.max(target.y - MAX_OFFSET, Math.min(target.y + MAX_OFFSET, v.y));
+}
+
+function glow(color, blur) {
+  ctx.shadowColor = color;
+  ctx.shadowBlur = blur;
+}
+function noGlow() { ctx.shadowBlur = 0; }
+
+function render() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const size = Math.min(W / cur.w, H / cur.h) * 0.92;
+  const offX = (W - size * cur.w) / 2;
+  const offY = (H - size * cur.h) / 2;
+
+  ctx.save();
+  if (shake > 0) {
+    ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake);
+    shake *= 0.82;
+    if (shake < 0.5) shake = 0;
+  }
+
+  drawAmbientBackground(W, H);
+
+  // tiles: floor + the same board pieces the tutorial uses
+  const tw = size - 3, kk = tw / TT;
+  const piece = (x, y, fn) => {
+    ctx.save();
+    ctx.translate(offX + x*size + tw/2, offY + y*size + tw/2);
+    ctx.scale(kk, kk);
+    fn(ctx);
+    ctx.restore();
+  };
+  doorAnim += ((doorsOpenNow ? 1 : 0) - doorAnim) * 0.22;
+  const wallList = [];
+  for (let y = 0; y < cur.h; y++) {
+    for (let x = 0; x < cur.w; x++) {
+      const key = x+','+y;
+      if (cur.walls.has(key)) { wallList.push([x, y]); continue; }
+      ctx.fillStyle = 'rgba(255,255,255,0.055)';
+      tuRR(ctx, offX + x*size, offY + y*size, tw, tw, 5*kk); ctx.fill();
+      if (cur.doors.has(key)) piece(x, y, c => pcDoor(c, doorAnim));
+      else if (cur.oneway[key]) piece(x, y, c => pcOneway(c, Math.atan2(cur.oneway[key].y, cur.oneway[key].x)));
+      else if (cur.shift[key]) {
+        const occ = (green.x===x && green.y===y) || (blue.x===x && blue.y===y);
+        piece(x, y, c => pcShift(c, cur.shift[key], occ));
+      } else if (cur.freeze.has(key)) {
+        const occ = (green.x===x && green.y===y) || (blue.x===x && blue.y===y);
+        piece(x, y, c => pcFreeze(c, occ));
+      }
+    }
+  }
+  for (const w of wallList) piece(w[0], w[1], c => pcWall(c, currentWorld));
+  for (const s of cur.switches) piece(s.x, s.y, c => pcSwitch(c, doorsOpenNow));
+  if (cur.teleA) {
+    const nowT = Date.now() / 1000;
+    [cur.teleA, cur.teleB].forEach(tp => piece(tp.x, tp.y, c => pcTele(c, nowT)));
+  }
+
+  // goals: rings, exactly as in the tutorial
+  {
+    const gp = Math.sin(Date.now()/250)*0.5 + 0.5;
+    piece(cur.greenGoal.x, cur.greenGoal.y, c => tuRing(c, 0, 0, TC.green, gp));
+    piece(cur.blueGoal.x, cur.blueGoal.y, c => tuRing(c, 0, 0, TC.blue, 1 - gp));
+  }
+
+  // hazards: the tutorial blade, patrol rail and next-step arrow
+  const nowT2 = Date.now() / 1000;
+  for (let i = 0; i < hazardsState.length; i++) {
+    const hv = hazardsV[i], hs = hazardsState[i];
+    hv.x += (hs.x - hv.x) * 0.35;
+    hv.y += (hs.y - hv.y) * 0.35;
+    hv.rot += (hs.rotTarget - hv.rot) * 0.25;
+    const cx = offX + hv.x*size + tw/2, cy = offY + hv.y*size + tw/2;
+    drawPatrolTrack(hs, size, offX, offY, tw, kk);
+    ctx.save();
+    ctx.translate(cx, cy); ctx.scale(kk, kk);
+    tuSaw(ctx, 0, 0, hv.rot + nowT2 * 3);
+    const nextDir = predictHazardDir(hs);
+    const ang = Math.atan2(hs.axis === 'v' ? nextDir : 0, hs.axis === 'h' ? nextDir : 0);
+    ctx.translate(Math.cos(ang) * 21, Math.sin(ang) * 21); ctx.rotate(ang);
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(-3, -5); ctx.lineTo(3, 0); ctx.lineTo(-3, 5); ctx.stroke();
+    ctx.restore();
+  }
+
+  // trails
+  function drawTrail(trail, color) {
+    for (let i = 0; i < trail.length; i++) {
+      const t = trail[i];
+      const alpha = (i / trail.length) * 0.35;
+      const r = size * 0.34 * (i / trail.length) * 0.8;
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(offX + t.x*size + size/2, offY + t.y*size + size/2, r, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  const fxG = stepBallVisual(greenV, green, 'green', greenTrail);
+  const fxB = stepBallVisual(blueV, blue, 'blue', blueTrail);
+  squashGreen *= 0.85; squashBlue *= 0.85;
+
+  greenTrail.push({x: greenV.x, y: greenV.y});
+  if (greenTrail.length > 8) greenTrail.shift();
+  blueTrail.push({x: blueV.x, y: blueV.y});
+  if (blueTrail.length > 8) blueTrail.shift();
+
+  drawTrail(greenTrail, '#b6ff3d');
+  drawTrail(blueTrail, '#7a8bb8');
+
+  drawBallFx(offX + greenV.x*size + size/2, offY + greenV.y*size + size/2, size*0.32, '#b6ff3d', squashGreen, fxG);
+  drawBallFx(offX + blueV.x*size + size/2, offY + blueV.y*size + size/2, size*0.32, '#7a8bb8', squashBlue, fxB);
+
+  // portal rings: one closes around the entry as the ball goes in, one opens at the exit as it comes out
+  for (const who of ['green', 'blue']) {
+    const fx = tpFx[who];
+    if (!fx) continue;
+    const e = (Date.now() - fx.t0) / 1000;
+    let p = null, rad = 0, a = 0;
+    if (e >= 0.12 && e < 0.40) { const k = (e - 0.12) / 0.28; p = fx.from; rad = (22 - k*12) * kk; a = 0.3 + k*0.5; }
+    else if (e >= 0.40 && e < 0.80) { const k = (e - 0.40) / 0.40; p = fx.to; rad = (13 + k*18) * kk; a = (1 - k) * 0.8; }
+    if (!p) continue;
+    ctx.strokeStyle = tuA(TC.violet, a); ctx.lineWidth = 2 * kk;
+    ctx.beginPath(); ctx.arc(offX + p.x*size + tw/2, offY + p.y*size + tw/2, rad, 0, Math.PI*2); ctx.stroke();
+  }
+
+  // particles
+  for (let i = particles.length-1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy; p.life -= 0.028;
+    if (p.life <= 0) { particles.splice(i,1); continue; }
+    glow(p.color, 8);
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(offX + p.x*size, offY + p.y*size, size*0.055, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    noGlow();
+  }
+
+  ctx.restore();
+
+  const newDoorsOpen = isSwitchActive();
+  if (newDoorsOpen && !doorsOpenNow) {
+    flashAlpha = 0.12;
+    sndSwitch();
+    if (cur.doors.size > 0) setTimeout(sndDoorOpen, 60);
+    vib(15);
+    cur.switches.forEach(s => switchPulses.push({x:s.x, y:s.y, age:0}));
+    cur.doors.forEach(key => {
+      const [dx, dy] = key.split(',').map(Number);
+      doorPortals.push({x:dx, y:dy, age:0});
+    });
+  } else if (!newDoorsOpen && doorsOpenNow && cur.doors.size > 0) {
+    sweep(500, 220, 0.2, 'sine', 0.03);
+  }
+  doorsOpenNow = newDoorsOpen;
+
+  // switch pulse: small, contained amber ring - stays inside the cell
+  const size2 = Math.min(canvas.width / cur.w, canvas.height / cur.h) * 0.92;
+  const offX2 = (canvas.width - size2 * cur.w) / 2, offY2 = (canvas.height - size2 * cur.h) / 2;
+  for (let i = switchPulses.length - 1; i >= 0; i--) {
+    const p = switchPulses[i];
+    p.age++;
+    const t = p.age / 18;
+    if (t >= 1) { switchPulses.splice(i, 1); continue; }
+    const cx = offX2 + p.x*size2 + size2/2, cy = offY2 + p.y*size2 + size2/2;
+    ctx.strokeStyle = `rgba(255,207,61,${0.7 * (1-t)})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, size2 * 0.1 + t * size2 * 0.28, 0, Math.PI*2);
+    ctx.stroke();
+  }
+
+  // door portal: violet swirl marking a new passage opening
+  for (let i = doorPortals.length - 1; i >= 0; i--) {
+    const p = doorPortals[i];
+    p.age++;
+    const t = p.age / 28;
+    if (t >= 1) { doorPortals.splice(i, 1); continue; }
+    const cx = offX2 + p.x*size2 + size2/2, cy = offY2 + p.y*size2 + size2/2;
+    const alpha = 1 - t;
+    glow('#b23dff', 14);
+    ctx.strokeStyle = `rgba(178,61,255,${alpha*0.8})`;
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, size2 * 0.42 * t, -p.age*0.15, Math.PI*1.4 - p.age*0.15);
+    ctx.stroke();
+    ctx.strokeStyle = `rgba(220,180,255,${alpha*0.6})`;
+    ctx.beginPath();
+    ctx.arc(cx, cy, size2 * 0.24 * t, p.age*0.2, Math.PI*1.1 + p.age*0.2);
+    ctx.stroke();
+    noGlow();
+  }
+
+  // free-hint arrow: shows where green steps and where blue will follow
+  if (hintShow) {
+    if (Date.now() > hintShow.until) { hintShow.until = 0; }
+    else {
+      const pulse = 0.55 + 0.45 * Math.sin(Date.now() / 140);
+      const bdir = hintMirror(mirrorMode, hintShow.dx, hintShow.dy);
+      const arrow = (px, py, dx, dy, color) => {
+        const cx = offX2 + (px + 0.5) * size2 + dx * size2 * 0.72;
+        const cy = offY2 + (py + 0.5) * size2 + dy * size2 * 0.72;
+        const a = Math.atan2(dy, dx), r = size2 * 0.2;
+        ctx.save();
+        ctx.translate(cx, cy); ctx.rotate(a);
+        ctx.globalAlpha = pulse;
+        ctx.fillStyle = color;
+        ctx.shadowColor = color; ctx.shadowBlur = 14;
+        ctx.beginPath();
+        ctx.moveTo(r, 0); ctx.lineTo(-r * 0.7, -r * 0.8); ctx.lineTo(-r * 0.7, r * 0.8);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+      };
+      arrow(greenV.x, greenV.y, hintShow.dx, hintShow.dy, '#ffd76a');
+      arrow(blueV.x, blueV.y, bdir.x, bdir.y, '#ffd76a');
+    }
+  }
+
+  if (flashAlpha > 0.002) {
+    ctx.fillStyle = `rgba(255,230,150,${flashAlpha})`;
+    ctx.fillRect(0, 0, W, H);
+    flashAlpha *= 0.88;
+  }
+
+  requestAnimationFrame(render);
+}
+
+// deterministic pseudo-random, stable per-tile (no per-frame flicker)
+function tileRand(px, py, salt) {
+  const v = Math.sin(px*12.9898 + py*78.233 + salt*37.719) * 43758.5453;
+  return v - Math.floor(v);
+}
+
+function seededRand(i, salt) {
+  const v = Math.sin(i*12.9898 + salt*78.233) * 43758.5453;
+  return v - Math.floor(v);
+}
+
+function drawAmbientBackground(W, H) {
+  if (currentWorld === 2) {
+    const t = Date.now();
+    for (let i = 0; i < 16; i++) {
+      const baseX = seededRand(i, 1) * W;
+      const baseY = seededRand(i, 2) * H;
+      const speed = 0.012 + seededRand(i, 3) * 0.02;
+      const drift = ((t/1000) * speed * (i%2===0?1:-1)) % 1;
+      const x = (baseX + drift*W*1.3 + W) % W;
+      const y = (baseY + Math.sin(t/1800 + i) * 20 + H) % H;
+      const r = 1.2 + seededRand(i, 4) * 2;
+      const alpha = 0.15 + seededRand(i, 5) * 0.25;
+      ctx.globalAlpha = alpha * (0.6 + Math.sin(t/700 + i*2) * 0.4);
+      ctx.fillStyle = '#b23dff';
+      glow('#b23dff', 6);
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI*2);
+      ctx.fill();
+      noGlow();
+    }
+    ctx.globalAlpha = 1;
+  } else if (currentWorld === 4) {
+    const t = Date.now();
+    for (let i = 0; i < 18; i++) {
+      const baseX = seededRand(i, 1) * W;
+      const baseY = seededRand(i, 2) * H;
+      const rise = ((t/1000) * (0.01 + seededRand(i, 3) * 0.015) * H * 2) % (H + 40);
+      const y = (baseY - rise + H + 40) % (H + 40) - 20;
+      const x = (baseX + Math.sin(t/1700 + i*2) * 16 + W) % W;
+      const r = 1 + seededRand(i, 4) * 1.6;
+      ctx.globalAlpha = 0.18 + seededRand(i, 5) * 0.3;
+      ctx.fillStyle = i % 2 === 0 ? 'rgba(255,150,205,0.9)' : 'rgba(143,245,221,0.9)';
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  } else if (currentWorld === 3) {
+    const t = Date.now();
+    for (let i = 0; i < 22; i++) {
+      const baseX = seededRand(i, 1) * W;
+      const speed = 0.01 + seededRand(i, 2) * 0.018;
+      const fall = ((t/1000) * speed * H * 3) % (H + 40);
+      const y = fall - 20;
+      const x = (baseX + Math.sin(t/1500 + i*3) * 14 + W) % W;
+      const r = 1 + seededRand(i, 3) * 1.6;
+      const alpha = 0.2 + seededRand(i, 4) * 0.3;
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = 'rgba(220,240,255,0.9)';
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+// Portal travel: hop onto the entry portal, spin and shrink into it, then grow out of the exit portal.
+function stepBallVisual(v, target, who, trail) {
+  const fx = tpFx[who];
+  let scale = 1, rot = 0;
+  if (fx) {
+    const e = (Date.now() - fx.t0) / 1000;
+    if (e < 0.12) {
+      springTo(v, fx.from);
+    } else if (e < 0.40) {
+      v.x = fx.from.x; v.y = fx.from.y; v.vx = 0; v.vy = 0; trail.length = 0;
+      const k = (e - 0.12) / 0.28; scale = 1 - tuEase(k); rot = k * 6;
+    } else if (e < 0.70) {
+      v.x = fx.to.x; v.y = fx.to.y; v.vx = 0; v.vy = 0; trail.length = 0;
+      const k = (e - 0.40) / 0.30; scale = tuEase(k); rot = (1 - k) * 6;
+    } else {
+      tpFx[who] = null;
+      springTo(v, target);
+    }
+  } else {
+    springTo(v, target);
+  }
+  return { scale: Math.max(scale, 0.001), rot };
+}
+
+function drawBallFx(cx, cy, r, color, squash, fxv) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(fxv.rot);
+  ctx.scale(fxv.scale, fxv.scale);
+  drawPlayer(0, 0, r, color, squash);
+  ctx.restore();
+}
+
+function drawPlayer(cx, cy, r, color, squash) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  const sx = 1 + squash*0.4, sy = 1 - squash*0.4;
+  ctx.scale(sx, sy);
+  glow(color, 18);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI*2);
+  ctx.fill();
+  noGlow();
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.beginPath();
+  ctx.arc(-r*0.3, -r*0.3, r*0.28, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+
+/* ---------- Obstacles: walls + hazards ---------- */
+function patrolExtent(hs) {
+  const dx = hs.axis === 'h' ? 1 : 0, dy = hs.axis === 'v' ? 1 : 0;
+  let x = hs.x, y = hs.y;
+  while (true) {
+    const nx = x - dx, ny = y - dy;
+    if (nx < 0 || ny < 0 || cur.walls.has(nx + ',' + ny)) break;
+    x = nx; y = ny;
+  }
+  const a = { x, y };
+  x = hs.x; y = hs.y;
+  while (true) {
+    const nx = x + dx, ny = y + dy;
+    if (nx >= cur.w || ny >= cur.h || cur.walls.has(nx + ',' + ny)) break;
+    x = nx; y = ny;
+  }
+  return { a, b: { x, y } };
+}
+
+// faint dashed rail showing where a blade patrols (same style as the tutorial)
+function drawPatrolTrack(hs, size, offX, offY, tw, kk) {
+  if (!hs.ext) hs.ext = patrolExtent(hs);
+  const { a, b } = hs.ext;
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = 'rgba(255,61,90,0.3)'; ctx.lineWidth = 2*kk;
+  ctx.setLineDash([4*kk, 5*kk]);
+  ctx.beginPath();
+  ctx.moveTo(offX + a.x*size + tw/2, offY + a.y*size + tw/2);
+  ctx.lineTo(offX + b.x*size + tw/2, offY + b.y*size + tw/2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* ---------- Tutorials ---------- */
+const INTRO_CARDS = {
+  basics: [
+    { icon: 'move',
+      get title() { return controlScheme === 'dpad' ? 'Use the D-pad' : controlScheme === 'tap' ? 'Tap to move' : 'Swipe to move'; },
+      get text() {
+        return controlScheme === 'dpad' ? 'Press the arrows at the bottom of the screen to move the green ball one tile. You can change the controls in Settings.'
+             : controlScheme === 'tap' ? 'Tap the side of the board you want to go: left, right, above or below the center. You can change the controls in Settings.'
+             : 'Swipe anywhere to move the green ball one tile. You can change the controls in Settings.';
+      } },
+    { icon: 'mirror',  title: 'Blue mirrors you', text: 'The blue ball always moves the opposite way. Move right and blue goes left.' },
+    { icon: 'blocked', title: 'Blocked? It stays put', text: 'If a ball is blocked by a wall, it stays still while the other ball still moves.' },
+    { icon: 'goals',   title: 'Reach the goals', text: 'Park each ball on its matching ring. Fewer moves earn more stars.' }
+  ],
+  switch: [{ icon: 'switch', title: 'Switch and door', text: 'While a ball stands on the switch, the doors are open. Step off and they close again.' }],
+  hazard: [{ icon: 'hazard', title: 'Saw blades', text: 'A blade takes one step every time you move and bounces off walls. Touch one and the level restarts. The arrow shows its next step.' }],
+  tele:   [{ icon: 'tele', title: 'Teleporters', text: 'Step onto one portal and you appear at the other.' }],
+  oneway: [{ icon: 'oneway', title: 'One-way tiles', text: 'You can only enter these tiles by moving in the direction of the arrows.' }],
+  freeze: [{ icon: 'freeze', title: 'Freeze tiles', text: 'A ball standing on a freeze tile freezes the other ball. It cannot move until you step off.' }],
+  shift:  [
+    { icon: 'shift', title: 'Mirror shift tiles', text: 'Stepping on one changes how the blue ball answers your moves. The badge always shows the current mode.' },
+    { icon: 'modes', title: 'Three shift modes', text: 'Flip left/right only, flip up/down only, or copy you exactly. The last tile you stepped on stays in effect.' }
+  ]
+};
+INTRO_CARDS.detour = [
+  { icon: 'detour', title: 'Sometimes step away first', text: 'When a wall blocks the direct way, the best move can take both balls away from their goals. Look for a move that sets up a better one.' }
+];
+INTRO_CARDS.tips = [
+  { icon: 'hint',  title: 'Stuck? Tap Hint', text: 'The Hint button is free and unlimited. It shows the best next move from wherever you are right now, for both balls.' },
+  { icon: 'stars', title: 'How stars work', text: 'Finish in the target moves or fewer for 3 stars. Up to 25% more moves earns 2 stars. Any finish earns 1 star.' }
+];
+const INTRO_ORDER = ['switch', 'hazard', 'tele', 'oneway', 'freeze', 'shift'];
+let introQueue = [], introPos = 0, introKeys = [];
+
+function introElementsIn(lvl) {
+  return {
+    switch: lvl.switches.length > 0 || lvl.doors.size > 0,
+    hazard: lvl.hazards.length > 0,
+    tele: !!lvl.teleA,
+    oneway: Object.keys(lvl.oneway).length > 0,
+    freeze: lvl.freeze.size > 0,
+    shift: Object.keys(lvl.shift).length > 0
+  };
+}
+
+function hasAnyProgress() {
+  if (Object.keys(stars).length > 0) return true;
+  return Object.keys(starsByWorld).some(w => Object.keys(starsByWorld[w] || {}).length > 0);
+}
+
+function worldData(w) { return w === 4 ? LEVELS_DATA_4 : w === 3 ? LEVELS_DATA_3 : w === 2 ? LEVELS_DATA_2 : LEVELS_DATA; }
+
+// players who already finished levels never need the intro for elements those levels contain
+function migrateSeenIntros() {
+  const all = Object.assign({}, starsByWorld);
+  all[currentWorld] = stars;
+  for (const w in all) {
+    for (const idx in all[w]) {
+      if ((all[w][idx] || 0) <= 0) continue;
+      const def = worldData(+w)[idx];
+      if (!def) continue;
+      const present = introElementsIn(parseLevel(def));
+      for (const k in present) if (present[k]) seenIntros[k] = true;
+    }
+  }
+  seenIntros.migrated = true;
+}
+
+function maybeShowIntros() {
+  if (introOpen || !cur) return;
+  if (document.getElementById('gameScreen').classList.contains('hidden')) return;
+  const cards = [], keys = [];
+  let changed = false;
+  if (!seenIntros.migrated && hasAnyProgress()) { migrateSeenIntros(); changed = true; }
+  if (!seenIntros.basics) {
+    if (hasAnyProgress()) { seenIntros.basics = true; changed = true; }
+    else { INTRO_CARDS.basics.forEach(c => cards.push(c)); keys.push('basics'); }
+  }
+  const present = introElementsIn(cur);
+  const completed = (stars[curIdx] || 0) > 0;
+  for (const k of INTRO_ORDER) {
+    if (!present[k] || seenIntros[k]) continue;
+    if (completed) { seenIntros[k] = true; changed = true; continue; }
+    INTRO_CARDS[k].forEach(c => cards.push(c)); keys.push(k);
+  }
+  if (cur.intro === 'detour' && !seenIntros.detour) {
+    if (completed) { seenIntros.detour = true; changed = true; }
+    else { INTRO_CARDS.detour.forEach(c => cards.push(c)); keys.push('detour'); }
+  }
+  if (!seenIntros.tips && !cards.length && !guidedActive) { INTRO_CARDS.tips.forEach(c => cards.push(c)); keys.push('tips'); changed = true; }
+  if (changed) saveProgress();
+  if (cards.length) showIntroSequence(cards, keys);
+}
+
+function showIntroSequence(cards, keys) {
+  introQueue = cards; introPos = 0; introKeys = keys;
+  introOpen = true;
+  document.getElementById('introPanel').classList.remove('hidden');
+  renderIntroCard();
+}
+
+function renderIntroCard() {
+  const card = introQueue[introPos];
+  document.getElementById('introTitle').textContent = card.title;
+  document.getElementById('introText').textContent = card.text;
+  const dots = document.getElementById('introDots');
+  dots.innerHTML = '';
+  if (introQueue.length > 1) {
+    introQueue.forEach((_, i) => { const d = document.createElement('i'); if (i === introPos) d.className = 'on'; dots.appendChild(d); });
+  }
+  const last = introPos >= introQueue.length - 1;
+  document.getElementById('introNext').textContent = last ? 'Got it' : 'Next';
+  document.getElementById('introSkip').style.display = last ? 'none' : '';
+  startIntroAnim(card.icon);
+}
+
+function finishIntro() {
+  introOpen = false;
+  document.getElementById('introPanel').classList.add('hidden');
+  introKeys.forEach(k => { seenIntros[k] = true; });
+  if (introKeys.length) saveProgress();
+}
+
+document.getElementById('introSkip').addEventListener('click', () => { sndClick(); finishIntro(); });
+document.getElementById('introNext').addEventListener('click', () => {
+  sndClick();
+  introPos++;
+  if (introPos >= introQueue.length) finishIntro(); else renderIntroCard();
+});
+document.getElementById('howBtn').addEventListener('click', () => {
+  sndClick();
+  const all = [];
+  ['basics'].concat(INTRO_ORDER, ['detour', 'tips']).forEach(k => INTRO_CARDS[k].forEach(c => all.push(c)));
+  showIntroSequence(all, []);
+});
+
+// Reset: wipes levels, stars and seen tutorials (keeps the control scheme). Needs a second tap to confirm.
+let resetArmed = false, resetTimer = 0;
+function resetAllProgress() {
+  unlockedByWorld = { 1: 1, 2: 1, 3: 1, 4: 1 };
+  starsByWorld = { 1: {}, 2: {}, 3: {}, 4: {} };
+  seenIntros = {};
+  controlScheme = 'dpad'; controlChosen = false;
+  applyControlScheme();
+  switchWorld(1);
+  unlocked = 1; stars = {};
+  saveProgress();
+  buildLevelGrid();
+}
+document.getElementById('resetBtn').addEventListener('click', () => {
+  const btn = document.getElementById('resetBtn');
+  sndClick();
+  if (!resetArmed) {
+    resetArmed = true;
+    btn.textContent = 'Tap again to erase all';
+    btn.style.color = '#ff6b81'; btn.style.borderColor = '#ff6b81';
+    clearTimeout(resetTimer);
+    resetTimer = setTimeout(() => { resetArmed = false; btn.textContent = 'Reset progress'; btn.style.color = ''; btn.style.borderColor = ''; }, 3000);
+    return;
+  }
+  clearTimeout(resetTimer);
+  resetArmed = false;
+  resetAllProgress();
+  btn.textContent = 'Progress reset'; btn.style.color = '#b6ff3d'; btn.style.borderColor = '#b6ff3d';
+  resetTimer = setTimeout(() => { btn.textContent = 'Reset progress'; btn.style.color = ''; btn.style.borderColor = ''; }, 1800);
+});
+
+/* ---------- Animated tutorial scenes ---------- */
+const TU = 34; // mini tile size
+const TC = { green:'#b6ff3d', blue:'#7a8bb8', amber:'#ffb347', violet:'#b23dff', red:'#ff3d5a', ice:'#b4e6ff', mint:'#8ff5dd' };
+const tuClamp = v => Math.max(0, Math.min(1, v));
+const tuEase = p => p < 0.5 ? 4*p*p*p : 1 - Math.pow(-2*p + 2, 3) / 2;
+function tuA(hex, a) { const n = parseInt(hex.slice(1), 16); return 'rgba(' + ((n>>16)&255) + ',' + ((n>>8)&255) + ',' + (n&255) + ',' + a + ')'; }
+function tuRR(c, x, y, w, h, r) { c.beginPath(); if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h); }
+
+// keys: [[time, col, row], ...]; eased between keys; p is 0..1 while a hop is in progress
+function tuTrack(t, keys) {
+  if (t <= keys[0][0]) return { x: keys[0][1], y: keys[0][2], p: 0 };
+  for (let i = 1; i < keys.length; i++) {
+    if (t <= keys[i][0]) {
+      const a = keys[i-1], b = keys[i];
+      const p = (t - a[0]) / (b[0] - a[0]), e = tuEase(p);
+      const moving = a[1] !== b[1] || a[2] !== b[2];
+      return { x: a[1] + (b[1]-a[1])*e, y: a[2] + (b[2]-a[2])*e, p: moving ? p : 0 };
+    }
+  }
+  const l = keys[keys.length-1];
+  return { x: l[1], y: l[2], p: 0 };
+}
+
+function tuGrid(c, cols, rows, walls) {
+  const ox = (240 - cols*TU) / 2, oy = 9 + (3 - rows) * TU / 2;
+  const isWall = (x, y) => (walls || []).some(w => w[0] === x && w[1] === y);
+  for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+    const px = ox + x*TU, py = oy + y*TU;
+    if (isWall(x, y)) {
+      c.save(); c.translate(px + TT/2, py + TT/2); pcWall(c, 1); c.restore();
+    } else {
+      c.fillStyle = 'rgba(255,255,255,0.055)'; tuRR(c, px, py, TU-3, TU-3, 5); c.fill();
+    }
+  }
+  return { ox, oy, at: (col, row) => ({ x: ox + (col + 0.5)*TU - 1.5, y: oy + (row + 0.5)*TU - 1.5 }) };
+}
+
+function tuBall(c, x, y, color, p, scale, offX) {
+  const r = 11, hop = p > 0 ? Math.sin(p*Math.PI)*3 : 0, sq = p > 0 ? Math.sin(p*Math.PI)*0.12 : 0;
+  x += (offX || 0);
+  c.save();
+  const hg = c.createRadialGradient(x, y, 0, x, y, r*2.2);
+  hg.addColorStop(0, tuA(color, 0.28)); hg.addColorStop(1, tuA(color, 0));
+  c.fillStyle = hg; c.beginPath(); c.arc(x, y, r*2.2, 0, Math.PI*2); c.fill();
+  c.fillStyle = 'rgba(0,0,0,0.35)'; c.beginPath(); c.ellipse(x, y + r*0.95, r*0.85, r*0.25, 0, 0, Math.PI*2); c.fill();
+  c.translate(x, y - hop); c.scale((1 + sq) * (scale === undefined ? 1 : scale), (1 - sq) * (scale === undefined ? 1 : scale));
+  const g = c.createRadialGradient(-r*0.35, -r*0.4, r*0.1, 0, 0, r);
+  g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, color); g.addColorStop(1, 'rgba(0,0,0,0.6)');
+  c.fillStyle = g; c.beginPath(); c.arc(0, 0, r, 0, Math.PI*2); c.fill();
+  c.restore();
+}
+
+function tuRing(c, x, y, color, pulse) {
+  const hg = c.createRadialGradient(x, y, 0, x, y, TU*0.6);
+  hg.addColorStop(0, tuA(color, 0.18 + (pulse || 0)*0.1)); hg.addColorStop(1, tuA(color, 0));
+  c.fillStyle = hg; c.beginPath(); c.arc(x, y, TU*0.6, 0, Math.PI*2); c.fill();
+  c.strokeStyle = tuA(color, 0.9); c.lineWidth = 1.8; c.beginPath(); c.arc(x, y, 13, 0, Math.PI*2); c.stroke();
+  c.save(); c.setLineDash([3, 3]); c.strokeStyle = tuA(color, 0.55); c.lineWidth = 1.2; c.beginPath(); c.arc(x, y, 8, 0, Math.PI*2); c.stroke(); c.restore();
+}
+
+function tuArrow(c, x1, y1, x2, y2, color, alpha) {
+  c.save(); c.globalAlpha *= alpha === undefined ? 1 : alpha;
+  c.strokeStyle = color; c.lineWidth = 2.2; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
+  const a = Math.atan2(y2 - y1, x2 - x1);
+  c.beginPath(); c.moveTo(x2 - Math.cos(a - 0.55)*6, y2 - Math.sin(a - 0.55)*6); c.lineTo(x2, y2); c.lineTo(x2 - Math.cos(a + 0.55)*6, y2 - Math.sin(a + 0.55)*6); c.stroke();
+  c.restore();
+}
+
+function tuSaw(c, x, y, rot) {
+  const r = 12;
+  const hg = c.createRadialGradient(x, y, 0, x, y, r*2.4);
+  hg.addColorStop(0, tuA(TC.red, 0.25)); hg.addColorStop(1, tuA(TC.red, 0));
+  c.fillStyle = hg; c.beginPath(); c.arc(x, y, r*2.4, 0, Math.PI*2); c.fill();
+  c.save(); c.translate(x, y); c.rotate(rot);
+  c.fillStyle = '#ff5a72'; c.beginPath();
+  for (let t = 0; t < 8; t++) {
+    const a0 = t/8*Math.PI*2, a1 = a0 + Math.PI*2/16, a2 = a0 + Math.PI*2/8;
+    c.lineTo(Math.cos(a0)*r*0.66, Math.sin(a0)*r*0.66); c.lineTo(Math.cos(a1)*r*1.1, Math.sin(a1)*r*1.1); c.lineTo(Math.cos(a2)*r*0.66, Math.sin(a2)*r*0.66);
+  }
+  c.closePath(); c.fill();
+  c.fillStyle = '#c8cedb'; c.beginPath(); c.arc(0, 0, r*0.64, 0, Math.PI*2); c.fill();
+  c.strokeStyle = 'rgba(8,10,16,0.6)'; c.lineWidth = 2.2;
+  for (let k = 0; k < 4; k++) { c.beginPath(); c.arc(0, 0, r*0.4, k*Math.PI/2 + 0.25, k*Math.PI/2 + 0.95); c.stroke(); }
+  c.fillStyle = '#171a23'; c.beginPath(); c.arc(0, 0, r*0.16, 0, Math.PI*2); c.fill();
+  c.restore();
+}
+
+// input hint under the board: follows the player's control scheme
+const TU_PAD = [[-1,0],[0,1],[0,-1],[1,0]];
+function tuInputBase(c) {
+  if (controlScheme === 'dpad') {
+    TU_PAD.forEach((b, i) => {
+      const x = 104 + i*20, y = 123;
+      c.fillStyle = 'rgba(255,255,255,0.07)'; tuRR(c, x - 8, y - 8, 16, 16, 4); c.fill();
+      c.strokeStyle = 'rgba(255,255,255,0.22)'; c.lineWidth = 1; tuRR(c, x - 7.5, y - 7.5, 15, 15, 4); c.stroke();
+      tuChevron(c, x, y, b[0], b[1], 'rgba(255,255,255,0.6)');
+    });
+  } else if (controlScheme === 'tap') {
+    c.strokeStyle = 'rgba(255,255,255,0.22)'; c.lineWidth = 1; tuRR(c, 72.5, 110.5, 95, 24, 6); c.stroke();
+    c.fillStyle = 'rgba(255,255,255,0.18)'; c.beginPath(); c.arc(120, 123, 1.8, 0, Math.PI*2); c.fill();
+  }
+}
+function tuChevron(c, x, y, ax, ay, color) {
+  c.strokeStyle = color; c.lineWidth = 1.8; c.beginPath();
+  const tx = x + ax*3, ty = y + ay*3;
+  if (ax) { c.moveTo(x - ax*2, y - 4); c.lineTo(tx, ty); c.lineTo(x - ax*2, y + 4); }
+  else { c.moveTo(x - 4, y - ay*2); c.lineTo(tx, ty); c.lineTo(x + 4, y - ay*2); }
+  c.stroke();
+}
+function tuFinger(c, t, t0, dx, dy) {
+  const local = (t - t0) / 0.45;
+  if (local < -0.2 || local > 1.25) return;
+  const alpha = local < 0 ? (local + 0.2) / 0.2 : local > 1 ? 1 - (local - 1) / 0.25 : 1;
+  c.save(); c.globalAlpha *= alpha;
+  if (controlScheme === 'dpad') {
+    const i = TU_PAD.findIndex(b => b[0] === dx && b[1] === dy);
+    const x = 104 + i*20, y = 123, on = local > 0.65 && local < 1.2;
+    c.globalAlpha = on ? 1 : 0;
+    c.fillStyle = 'rgba(255,255,255,0.9)'; tuRR(c, x - 8, y - 8, 16, 16, 4); c.fill();
+    tuChevron(c, x, y, dx, dy, '#10131c');
+    c.globalAlpha = alpha * 0.9;
+    // small finger dot approaching the button
+    const k = tuEase(tuClamp(local));
+    c.fillStyle = 'rgba(255,255,255,0.8)'; c.beginPath(); c.arc(x + 4*(1 - k), y + 8*(1 - k), 4.5, 0, Math.PI*2); c.fill();
+  } else if (controlScheme === 'tap') {
+    const x = 120 + dx*30, y = 122 + dy*7, k = tuClamp(local);
+    c.strokeStyle = 'rgba(255,255,255,0.6)'; c.lineWidth = 1.6; c.beginPath(); c.arc(x, y, 3 + k*9, 0, Math.PI*2); c.stroke();
+    c.fillStyle = 'rgba(255,255,255,0.85)'; c.beginPath(); c.arc(x, y, 4.5, 0, Math.PI*2); c.fill();
+  } else {
+    const bx = 120, by = 122, h = 12, e = tuEase(tuClamp(local));
+    const sx = bx - dx*h, sy = by - dy*h, px = sx + dx*2*h*e, py = sy + dy*2*h*e;
+    c.strokeStyle = 'rgba(255,255,255,0.28)'; c.lineWidth = 2; c.beginPath(); c.moveTo(sx, sy); c.lineTo(px, py); c.stroke();
+    c.fillStyle = 'rgba(255,255,255,0.22)'; c.beginPath(); c.arc(px, py, 9, 0, Math.PI*2); c.fill();
+    c.fillStyle = 'rgba(255,255,255,0.8)'; c.beginPath(); c.arc(px, py, 5.5, 0, Math.PI*2); c.fill();
+  }
+  c.restore();
+}
+function tuFingers(c, t, sw) { tuInputBase(c); sw.forEach(s => tuFinger(c, t, s[0], s[1], s[2])); }
+// ---- board pieces: drawn centered on (0,0) inside a TT x TT tile. Used by BOTH the tutorial and the real board ----
+const TT = TU - 3;
+const TU_WALL = {
+  1: { a:'#53657f', b:'#2d3b50', edge:'rgba(127,214,230,0.45)' },
+  2: { a:'#605394', b:'#33294f', edge:'rgba(178,120,255,0.50)' },
+  3: { a:'#8a6847', b:'#573f29', edge:'rgba(240,190,130,0.50)' },
+  4: { a:'#7a5a74', b:'#47334a', edge:'rgba(255,140,200,0.50)' }
+};
+function pcWall(c, world) {
+  const P = TU_WALL[world] || TU_WALL[1], x = -TT/2, y = -TT/2;
+  c.fillStyle = '#10151f'; tuRR(c, x, y + 3, TT, TT, 5); c.fill();
+  const g = c.createLinearGradient(x, y, x + TU, y + TU);
+  g.addColorStop(0, P.a); g.addColorStop(1, P.b);
+  c.fillStyle = g; tuRR(c, x, y, TT, TT, 5); c.fill();
+  c.strokeStyle = P.edge; c.lineWidth = 1; tuRR(c, x + 0.5, y + 0.5, TT - 1, TT - 1, 5); c.stroke();
+}
+function pcDoor(c, open) {
+  const x = -TT/2, y = -TT/2;
+  c.fillStyle = tuA('#3c280a', 0.8*(1 - open)); tuRR(c, x, y, TT, TT, 5); c.fill();
+  c.strokeStyle = tuA(TC.amber, 0.8); c.lineWidth = 1.4;
+  if (open > 0.5) c.setLineDash([4, 3]);
+  tuRR(c, x, y, TT, TT, 5); c.stroke(); c.setLineDash([]);
+  c.strokeStyle = tuA(TC.amber, 0.85*(1 - open)); c.lineWidth = 2;
+  for (let i = 1; i <= 3; i++) {
+    const bx = x + TT*i/4, hh = TT*0.64*(1 - open);
+    c.beginPath(); c.moveTo(bx, -hh/2); c.lineTo(bx, hh/2); c.stroke();
+  }
+}
+function pcSwitch(c, active) {
+  c.fillStyle = 'rgba(0,0,0,0.4)'; c.beginPath(); c.arc(0, 0, 11, 0, Math.PI*2); c.fill();
+  c.strokeStyle = tuA(TC.amber, active ? 1 : 0.6); c.lineWidth = 1.8; c.beginPath(); c.arc(0, 0, 11, 0, Math.PI*2); c.stroke();
+  if (active) {
+    const hg = c.createRadialGradient(0, 0, 0, 0, 0, 22);
+    hg.addColorStop(0, tuA(TC.amber, 0.4)); hg.addColorStop(1, tuA(TC.amber, 0));
+    c.fillStyle = hg; c.beginPath(); c.arc(0, 0, 22, 0, Math.PI*2); c.fill();
+  }
+}
+function pcTele(c, t) {
+  const hg = c.createRadialGradient(0, 0, 0, 0, 0, 22);
+  hg.addColorStop(0, tuA(TC.violet, 0.28)); hg.addColorStop(1, tuA(TC.violet, 0));
+  c.fillStyle = hg; c.beginPath(); c.arc(0, 0, 22, 0, Math.PI*2); c.fill();
+  c.strokeStyle = tuA(TC.violet, 0.9); c.lineWidth = 1.8; c.beginPath(); c.arc(0, 0, 13, 0, Math.PI*2); c.stroke();
+  c.save(); c.setLineDash([4, 3]); c.lineDashOffset = -t*14; c.strokeStyle = tuA(TC.violet, 0.7); c.lineWidth = 1.4;
+  c.beginPath(); c.arc(0, 0, 8, 0, Math.PI*2); c.stroke(); c.restore();
+}
+function pcOneway(c, ang) {
+  const x = -TT/2, y = -TT/2;
+  c.fillStyle = tuA(TC.violet, 0.14); tuRR(c, x, y, TT, TT, 5); c.fill();
+  c.strokeStyle = tuA(TC.violet, 0.6); c.lineWidth = 1.2; tuRR(c, x, y, TT, TT, 5); c.stroke();
+  c.save(); c.rotate(ang);
+  c.strokeStyle = TC.violet; c.lineWidth = 2.6;
+  [-6, 5].forEach(o => { c.beginPath(); c.moveTo(o - 4, -8); c.lineTo(o + 4, 0); c.lineTo(o - 4, 8); c.stroke(); });
+  c.restore();
+}
+function pcFreeze(c, lit) {
+  if (lit) {
+    const hg = c.createRadialGradient(0, 0, 0, 0, 0, 26);
+    hg.addColorStop(0, tuA(TC.ice, 0.35)); hg.addColorStop(1, tuA(TC.ice, 0));
+    c.fillStyle = hg; c.beginPath(); c.arc(0, 0, 26, 0, Math.PI*2); c.fill();
+  }
+  c.save(); c.strokeStyle = tuA(TC.ice, lit ? 0.95 : 0.6); c.lineWidth = 1.5;
+  for (let a = 0; a < 3; a++) {
+    c.rotate(Math.PI/3);
+    c.beginPath(); c.moveTo(0, -11); c.lineTo(0, 11);
+    c.moveTo(-4, -7); c.lineTo(0, -11); c.lineTo(4, -7);
+    c.moveTo(-4, 7); c.lineTo(0, 11); c.lineTo(4, 7); c.stroke();
+  }
+  c.restore();
+}
+function pcShift(c, mode, lit) {
+  const x = -TT/2, y = -TT/2;
+  c.fillStyle = tuA(TC.mint, lit ? 0.22 : 0.13); tuRR(c, x, y, TT, TT, 5); c.fill();
+  c.strokeStyle = tuA(TC.mint, lit ? 0.85 : 0.55); c.lineWidth = 1.2; tuRR(c, x, y, TT, TT, 5); c.stroke();
+  drawModeGlyph(c, 0, 0, 8, mode, TC.mint, 1.6);
+}
+
+function tuBump(t, m, mag) { const l = (t - m) / 0.25; return l > 0 && l < 1 ? -Math.sin(l*Math.PI)*mag : 0; }
+function tuCross(c, x, y, a) {
+  c.save(); c.globalAlpha *= a; c.strokeStyle = TC.red; c.lineWidth = 2.4;
+  c.beginPath(); c.moveTo(x - 6, y - 6); c.lineTo(x + 6, y + 6); c.moveTo(x + 6, y - 6); c.lineTo(x - 6, y + 6); c.stroke(); c.restore();
+}
+function tuMap(mode, dx, dy) { return mode === 1 ? [-dx, dy] : mode === 2 ? [dx, -dy] : mode === 3 ? [dx, dy] : [-dx, -dy]; }
+const tuModeName = ['MIRROR', 'SIDE FLIP', 'VERT FLIP', 'SYNC'];
+
+const INTRO_SCENES = {
+  detour: { L: 5.8, draw(c, t) {
+    const G = tuGrid(c, 5, 3, [[2,2]]);
+    const ga = G.at(3, 2), ba = G.at(2, 0);
+    tuRing(c, ga.x, ga.y, TC.green, Math.sin(t*4)*0.5 + 0.5); tuRing(c, ba.x, ba.y, TC.blue, Math.sin(t*4 + 1)*0.5 + 0.5);
+    const g = tuTrack(t, [[0,1,2],[.75,1,2],[1,1,1],[1.75,1,1],[2,2,1],[2.75,2,1],[3,3,1],[3.75,3,1],[4,3,2]]);
+    const b = tuTrack(t, [[0,4,0],[.75,4,0],[1,4,1],[1.75,4,1],[2,3,1],[2.75,3,1],[3,2,1],[3.75,2,1],[4,2,0]]);
+    const gp = G.at(g.x, g.y), bp = G.at(b.x, b.y);
+    tuBall(c, gp.x, gp.y, TC.green, g.p); tuBall(c, bp.x, bp.y, TC.blue, b.p);
+    const a = tuClamp((t - 0.95) / 0.2) * tuClamp((2.0 - t) / 0.2);
+    if (a > 0) {
+      c.globalAlpha *= a; c.font = '700 10px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillStyle = TC.amber; c.fillText('away from both goals!', 120, 126); c.globalAlpha /= a;
+    }
+    tuFingers(c, t, [[.3,0,-1],[1.3,1,0],[2.3,1,0],[3.3,0,1]]);
+  }},
+  hint: { L: 5.2, draw(c, t) {
+    const G = tuGrid(c, 5, 3);
+    // mock Hint button (top right), tapped at ~0.7s
+    const press = tuClamp(1 - Math.abs(t - 0.75) / 0.25);
+    c.fillStyle = tuA(TC.amber, 0.14 + press * 0.25); tuRR(c, 186, 6, 44, 18, 6); c.fill();
+    c.strokeStyle = tuA(TC.amber, 0.6); c.lineWidth = 1; tuRR(c, 186.5, 6.5, 43, 17, 6); c.stroke();
+    c.font = '700 10px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillStyle = TC.amber; c.fillText('Hint', 208, 15.5);
+    if (press > 0) { c.strokeStyle = tuA(TC.amber, press * 0.7); c.lineWidth = 1.5; c.beginPath(); c.arc(208, 15, 6 + (1 - press) * 12, 0, Math.PI * 2); c.stroke(); }
+    const g = tuTrack(t, [[0,0,1],[3.4,0,1],[3.65,1,1]]);
+    const b = tuTrack(t, [[0,4,1],[3.4,4,1],[3.65,3,1]]);
+    const gp = G.at(g.x, g.y), bp = G.at(b.x, b.y);
+    tuBall(c, gp.x, gp.y, TC.green, g.p); tuBall(c, bp.x, bp.y, TC.blue, b.p);
+    const a = tuClamp((t - 1.0) / 0.3) * tuClamp((3.4 - t) / 0.3) * (0.6 + 0.4 * Math.sin(t * 9));
+    if (a > 0) {
+      tuArrow(c, gp.x + 13, gp.y, gp.x + 23, gp.y, TC.amber, a);
+      tuArrow(c, bp.x - 13, bp.y, bp.x - 23, bp.y, TC.amber, a);
+    }
+    const tx = tuClamp((t - 1.0) / 0.3) * tuClamp((4.6 - t) / 0.3);
+    if (tx > 0) { c.globalAlpha *= tx; c.fillStyle = 'rgba(255,255,255,0.7)'; c.font = '700 10px sans-serif'; c.fillText('best next move: right  \u00b7  5 moves to finish', 120, 112); c.globalAlpha /= tx || 1; }
+  }},
+  stars: { L: 5.4, draw(c, t) {
+    const rows = [
+      { x: 44,  n: 3, label: 'target or fewer', at: 0.3 },
+      { x: 120, n: 2, label: 'up to +25%',      at: 1.5 },
+      { x: 196, n: 1, label: 'any finish',      at: 2.7 }
+    ];
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    rows.forEach(r => {
+      const s = tuClamp((t - r.at) / 0.35); if (s <= 0) return;
+      const k = s < 1 ? 0.6 + s * 0.5 : 1.1 - Math.min(0.1, (s - 1) * 2);
+      c.save(); c.globalAlpha *= s;
+      c.font = '16px sans-serif';
+      for (let i = 0; i < 3; i++) {
+        c.fillStyle = i < r.n ? '#ffd23d' : 'rgba(255,255,255,0.22)';
+        c.save(); c.translate(r.x - 16 + i * 16, 52); c.scale(k, k); c.fillText(i < r.n ? '\u2605' : '\u2606', 0, 0); c.restore();
+      }
+      c.font = '700 9.5px sans-serif'; c.fillStyle = 'rgba(255,255,255,0.7)'; c.fillText(r.label, r.x, 80);
+      c.restore();
+    });
+  }},
+  move: { L: 4.8, draw(c, t) {
+    const G = tuGrid(c, 5, 3);
+    const p = tuTrack(t, [[0,0,1],[.75,0,1],[1,1,1],[1.95,1,1],[2.2,2,1],[3.15,2,1],[3.4,2,0],[4.35,2,0],[4.6,1,0]]);
+    const q = G.at(p.x, p.y); tuBall(c, q.x, q.y, TC.green, p.p);
+    tuFingers(c, t, [[.3,1,0],[1.5,1,0],[2.7,0,-1],[3.9,-1,0]]);
+  }},
+  mirror: { L: 5.0, draw(c, t) {
+    const G = tuGrid(c, 5, 3);
+    const g = tuTrack(t, [[0,0,0],[.75,0,0],[1,1,0],[2.05,1,0],[2.3,1,1],[3.35,1,1],[3.6,1,2]]);
+    const b = tuTrack(t, [[0,4,2],[.75,4,2],[1,3,2],[2.05,3,2],[2.3,3,1],[3.35,3,1],[3.6,3,0]]);
+    const gp = G.at(g.x, g.y), bp = G.at(b.x, b.y), mid = G.at(2, 1);
+    c.save(); c.setLineDash([3, 4]); c.strokeStyle = 'rgba(255,255,255,0.14)'; c.lineWidth = 1.2;
+    c.beginPath(); c.moveTo(gp.x, gp.y); c.lineTo(bp.x, bp.y); c.stroke(); c.restore();
+    c.fillStyle = 'rgba(255,255,255,0.3)'; c.save(); c.translate(mid.x, mid.y); c.rotate(Math.PI/4); c.fillRect(-3, -3, 6, 6); c.restore();
+    tuBall(c, gp.x, gp.y, TC.green, g.p); tuBall(c, bp.x, bp.y, TC.blue, b.p);
+    const sw = [[.3,1,0],[1.6,0,1],[2.9,0,1]];
+    sw.forEach(s => {
+      const a = tuClamp((t - (s[0] + 0.1)) / 0.2) * tuClamp(1 - (t - (s[0] + 0.75)) / 0.2);
+      if (a <= 0) return;
+      tuArrow(c, gp.x + s[1]*13, gp.y + s[2]*13, gp.x + s[1]*21, gp.y + s[2]*21, TC.green, a);
+      tuArrow(c, bp.x - s[1]*13, bp.y - s[2]*13, bp.x - s[1]*21, bp.y - s[2]*21, TC.blue, a);
+    });
+    tuFingers(c, t, sw);
+  }},
+  blocked: { L: 4.6, draw(c, t) {
+    const G = tuGrid(c, 5, 3, [[3,1]]);
+    const g = tuTrack(t, [[0,0,1],[.75,0,1],[1,1,1],[1.95,1,1],[2.2,2,1],[3.15,2,1],[3.4,2,0]]);
+    const b = tuTrack(t, [[0,4,1],[3.15,4,1],[3.4,4,2]]);
+    const gp = G.at(g.x, g.y), bp = G.at(b.x, b.y);
+    const off = tuBump(t, .75, 5) + tuBump(t, 1.95, 5);
+    tuBall(c, gp.x, gp.y, TC.green, g.p); tuBall(c, bp.x, bp.y, TC.blue, b.p, 1, off);
+    const w = G.at(3, 1);
+    tuCross(c, w.x + 20, w.y, tuClamp(1 - Math.abs(t - .95)/0.5) + tuClamp(1 - Math.abs(t - 2.15)/0.5));
+    tuFingers(c, t, [[.3,1,0],[1.5,1,0],[2.7,0,-1]]);
+  }},
+  goals: { L: 5.0, draw(c, t) {
+    const G = tuGrid(c, 5, 3);
+    const win = tuClamp((t - 3.0) / 0.8);
+    const ga = G.at(4, 0), ba = G.at(0, 2);
+    tuRing(c, ga.x, ga.y, TC.green, Math.sin(t*4)*0.5 + 0.5); tuRing(c, ba.x, ba.y, TC.blue, Math.sin(t*4 + 1)*0.5 + 0.5);
+    const g = tuTrack(t, [[0,0,0],[.65,0,0],[.9,1,0],[1.35,1,0],[1.6,2,0],[2.05,2,0],[2.3,3,0],[2.75,3,0],[3,4,0]]);
+    const b = tuTrack(t, [[0,4,2],[.65,4,2],[.9,3,2],[1.35,3,2],[1.6,2,2],[2.05,2,2],[2.3,1,2],[2.75,1,2],[3,0,2]]);
+    const gp = G.at(g.x, g.y), bp = G.at(b.x, b.y);
+    tuBall(c, gp.x, gp.y, TC.green, g.p); tuBall(c, bp.x, bp.y, TC.blue, b.p);
+    if (win > 0 && win < 1) {
+      [[ga, TC.green], [ba, TC.blue]].forEach(o => {
+        c.strokeStyle = tuA(o[1], (1 - win)*0.8); c.lineWidth = 2; c.beginPath(); c.arc(o[0].x, o[0].y, 13 + win*26, 0, Math.PI*2); c.stroke();
+      });
+    }
+    tuFingers(c, t, [[.2,1,0],[.9,1,0],[1.6,1,0],[2.3,1,0]]);
+    c.font = '18px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    [188, 208, 228].forEach((x, i) => {
+      const s = tuClamp((t - (3.1 + i*0.2)) / 0.25); if (s <= 0) return;
+      const k = s < 1 ? 0.5 + s*0.7 : 1.2 - Math.min(0.2, (s - 1)*2);
+      c.save(); c.translate(x, 122); c.scale(k, k); c.fillStyle = '#ffd23d'; c.fillText('\u2605', 0, 0); c.restore();
+    });
+  }},
+  switch: { L: 4.6, draw(c, t) {
+    const G = tuGrid(c, 5, 3);
+    const open = t < 2.9 ? tuEase(tuClamp((t - 1.0)/0.4)) : 1 - tuEase(tuClamp((t - 2.9)/0.4));
+    const active = t >= 1.0 && t < 2.9;
+    const pl = G.at(1, 1), dr = G.at(3, 1), goal = G.at(4, 1);
+    tuRing(c, goal.x, goal.y, TC.green, 0);
+    c.save(); c.translate(pl.x, pl.y); pcSwitch(c, active); c.restore();
+    c.save(); c.setLineDash([2, 4]); c.strokeStyle = tuA(TC.amber, 0.3 + open*0.3); c.lineWidth = 1.2; c.beginPath(); c.moveTo(pl.x + 14, pl.y); c.lineTo(dr.x - 16, dr.y); c.stroke(); c.restore();
+    c.save(); c.translate(dr.x, dr.y); pcDoor(c, open); c.restore();
+    const p = tuTrack(t, [[0,0,1],[.75,0,1],[1,1,1],[2.65,1,1],[2.9,0,1]]);
+    const q = G.at(p.x, p.y); tuBall(c, q.x, q.y, TC.green, p.p);
+    tuFingers(c, t, [[.3,1,0],[2.2,-1,0]]);
+  }},
+  hazard: { L: 6.4, draw(c, t) {
+    const G = tuGrid(c, 5, 3);
+    const beats = [.8, 1.6, 2.4, 3.2, 4.0, 4.8], sp = [4,3,2,1,0,1,2];
+    const n = beats.filter(b => t >= b).length;
+    const a = G.at(0, 1), b = G.at(4, 1);
+    c.save(); c.setLineDash([4, 5]); c.strokeStyle = tuA(TC.red, 0.3); c.lineWidth = 2; c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke(); c.restore();
+    const ball = tuTrack(t, [[0,0,1],[.8,0,1],[1.05,1,1],[1.6,1,1],[1.85,1,0],[2.4,1,0],[2.65,2,0],[3.2,2,0],[3.45,3,0],[4,3,0],[4.25,2,0],[4.8,2,0],[5.05,2,1]]);
+    const saw = tuTrack(t, [[0,4,1],[.8,4,1],[1.05,3,1],[1.6,3,1],[1.85,2,1],[2.4,2,1],[2.65,1,1],[3.2,1,1],[3.45,0,1],[4,0,1],[4.25,1,1],[4.8,1,1],[5.05,2,1]]);
+    const sq = G.at(saw.x, saw.y), bq = G.at(ball.x, ball.y);
+    tuSaw(c, sq.x, sq.y, t*3);
+    if (n < 6) {
+      const d = Math.sign(sp[n + 1] - sp[n]);
+      c.strokeStyle = 'rgba(255,255,255,0.9)'; c.lineWidth = 2.2;
+      const cx = sq.x + d*21; c.beginPath(); c.moveTo(cx - d*3, sq.y - 5); c.lineTo(cx + d*3, sq.y); c.lineTo(cx - d*3, sq.y + 5); c.stroke();
+    }
+    const hit = t >= 5.05 ? tuClamp(1 - (t - 5.05)/0.6) : 0;
+    tuBall(c, bq.x, bq.y, TC.green, ball.p, 1, hit > 0 ? Math.sin(t*60)*2*hit : 0);
+    if (hit > 0) { c.fillStyle = tuA(TC.red, hit*0.28); c.fillRect(0, 0, 240, 136); tuCross(c, bq.x, bq.y - 16, hit); }
+    c.font = '700 10px sans-serif'; c.textAlign = 'right'; c.textBaseline = 'middle'; c.fillStyle = 'rgba(255,255,255,0.6)';
+    c.fillText('MOVES ' + n, 232, 125);
+    tuFingers(c, t, [[.35,1,0],[1.15,0,-1],[1.95,1,0],[2.75,1,0],[3.55,-1,0],[4.35,0,1]]);
+  }},
+  tele: { L: 4.4, draw(c, t) {
+    const G = tuGrid(c, 5, 3);
+    const A = G.at(0, 1), B = G.at(4, 1);
+    [A, B].forEach(P => { c.save(); c.translate(P.x, P.y); pcTele(c, t); c.restore(); });
+    let p, s;
+    if (t < 1.3) { p = tuTrack(t, [[0,1,1],[.75,1,1],[1,0,1],[1.3,0,1]]); s = 1 - tuClamp((t - 1.0)/0.3); }
+    else { p = tuTrack(t, [[1.3,4,1],[2.85,4,1],[3.1,3,1]]); s = tuClamp((t - 1.3)/0.3); }
+    const q = G.at(p.x, p.y);
+    c.save(); c.translate(q.x, q.y); c.rotate((1 - s)*5); tuBall(c, 0, 0, TC.green, p.p, Math.max(0.01, s)); c.restore();
+    const rip = tuClamp((t - 1.3)/0.5);
+    if (rip > 0 && rip < 1) { c.strokeStyle = tuA(TC.violet, (1 - rip)*0.8); c.lineWidth = 2; c.beginPath(); c.arc(B.x, B.y, 13 + rip*16, 0, Math.PI*2); c.stroke(); }
+    tuFingers(c, t, [[.3,-1,0],[2.4,-1,0]]);
+  }},
+  oneway: { L: 5.4, draw(c, t) {
+    const G = tuGrid(c, 5, 3);
+    const T = G.at(2, 1);
+    c.save(); c.translate(T.x, T.y); pcOneway(c, 0); c.restore();
+    const p = tuTrack(t, [[0,0,1],[.75,0,1],[1,1,1],[1.75,1,1],[2,2,1],[2.75,2,1],[3,3,1],[3.95,3,1]]);
+    const q = G.at(p.x, p.y);
+    tuBall(c, q.x, q.y, TC.green, p.p, 1, tuBump(t, 3.95, 5));
+    if (t > 3.95) tuCross(c, T.x, T.y, tuClamp(1 - (t - 3.95)/0.9));
+    tuFingers(c, t, [[.3,1,0],[1.3,1,0],[2.3,1,0],[3.5,-1,0]]);
+  }},
+  freeze: { L: 4.6, draw(c, t) {
+    const G = tuGrid(c, 5, 3);
+    const F = G.at(1, 1);
+    const lit = t >= 1.0 && t < 2.5;
+    c.save(); c.translate(F.x, F.y); pcFreeze(c, lit); c.restore();
+    const g = tuTrack(t, [[0,0,1],[.75,0,1],[1,1,1],[2.25,1,1],[2.5,2,1]]);
+    const b = tuTrack(t, [[0,4,1],[.75,4,1],[1,3,1]]);
+    const gp = G.at(g.x, g.y), bp = G.at(b.x, b.y);
+    tuBall(c, gp.x, gp.y, TC.green, g.p);
+    tuBall(c, bp.x, bp.y, TC.blue, b.p, 1, tuBump(t, 2.25, 4));
+    const shell = tuClamp((t - 1.2)/0.3) * (1 - tuClamp((t - 2.9)/0.4));
+    if (shell > 0) {
+      c.save(); c.globalAlpha *= shell; c.translate(bp.x, bp.y); c.scale(0.7 + shell*0.3, 0.7 + shell*0.3);
+      c.fillStyle = tuA(TC.ice, 0.25); c.strokeStyle = tuA(TC.ice, 0.95); c.lineWidth = 1.8;
+      c.beginPath(); c.arc(0, 0, 16, 0, Math.PI*2); c.fill(); c.stroke();
+      c.lineWidth = 1.2; c.beginPath(); c.moveTo(-8, -6); c.lineTo(-3, -11); c.moveTo(6, 8); c.lineTo(10, 3); c.stroke();
+      c.restore();
+    }
+    tuFingers(c, t, [[.3,1,0],[1.8,1,0]]);
+  }},
+  shift: { L: 4.8, draw(c, t) {
+    const G = tuGrid(c, 5, 3);
+    const T = G.at(2, 1);
+    const mode = t >= 1.0 ? 1 : 0;
+    c.save(); c.translate(T.x, T.y); pcShift(c, 1, false); c.restore();
+    const g = tuTrack(t, [[0,1,1],[.75,1,1],[1,2,1],[2.45,2,1],[2.7,2,0]]);
+    const b = tuTrack(t, [[0,4,1],[.75,4,1],[1,3,1],[2.45,3,1],[2.7,3,0]]);
+    const gp = G.at(g.x, g.y), bp = G.at(b.x, b.y);
+    const gh = G.at(3, 2), gha = tuClamp((t - 2.45)/0.2) * (1 - tuClamp((t - 3.7)/0.5));
+    if (gha > 0) {
+      c.save(); c.globalAlpha *= gha*0.6; c.setLineDash([3, 3]); c.strokeStyle = TC.blue; c.lineWidth = 1.4; c.beginPath(); c.arc(gh.x, gh.y, 10, 0, Math.PI*2); c.stroke(); c.restore();
+      tuCross(c, gh.x, gh.y, gha);
+    }
+    tuBall(c, gp.x, gp.y, TC.green, g.p); tuBall(c, bp.x, bp.y, TC.blue, b.p);
+    const pulse = t >= 1.0 ? Math.max(0, 1 - (t - 1.0)/0.4) : 0;
+    c.save(); c.translate(52, 123); c.scale(1 + pulse*0.2, 1 + pulse*0.2);
+    drawModeGlyph(c, -30, 0, 7, mode, TC.mint, 1.6);
+    c.font = '700 10px sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillStyle = TC.mint; c.fillText(tuModeName[mode], -16, 0);
+    c.restore();
+    tuFingers(c, t, [[.3,1,0],[2.0,0,-1]]);
+  }},
+  modes: { L: 4.0, draw(c, t) {
+    const inputs = [[1,0],[0,-1],[-1,0],[0,1]], idx = Math.floor(t) % 4, frac = t - Math.floor(t);
+    const a = Math.min(1, frac/0.12) * Math.min(1, (1 - frac)/0.12 + 0.3);
+    const names = ['L/R FLIP', 'U/D FLIP', 'COPY'];
+    [1, 2, 3].forEach((mode, i) => {
+      const x = 40 + i*80;
+      c.fillStyle = tuA(TC.mint, 0.13); tuRR(c, x - 18, 12, 36, 36, 6); c.fill();
+      c.strokeStyle = tuA(TC.mint, 0.55); c.lineWidth = 1.2; tuRR(c, x - 18, 12, 36, 36, 6); c.stroke();
+      drawModeGlyph(c, x, 30, 9, mode, TC.mint, 1.8);
+      const d = inputs[idx], m = tuMap(mode, d[0], d[1]);
+      c.font = '700 8px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillStyle = tuA(TC.green, 0.8); c.fillText('YOU', x - 15, 66); c.fillStyle = tuA(TC.blue, 1); c.fillText('BLUE', x + 15, 66);
+      tuArrow(c, x - 15 - d[0]*9, 86 - d[1]*9, x - 15 + d[0]*9, 86 + d[1]*9, TC.green, a);
+      tuArrow(c, x + 15 - m[0]*9, 86 - m[1]*9, x + 15 + m[0]*9, 86 + m[1]*9, TC.blue, a);
+      c.font = '700 9px sans-serif'; c.fillStyle = TC.mint; c.fillText(names[i], x, 116);
+    });
+  }}
+};
+
+function drawIntroFrame(kind, tAbs) {
+  const sc = INTRO_SCENES[kind]; if (!sc) return;
+  const c = document.getElementById('introCanvas').getContext('2d');
+  const t = tAbs % sc.L;
+  c.setTransform(2, 0, 0, 2, 0, 0);
+  c.clearRect(0, 0, 240, 136);
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  c.globalAlpha = Math.max(0, Math.min(1, t/0.25, (sc.L - t)/0.35));
+  sc.draw(c, t);
+  c.globalAlpha = 1;
+}
+
+let introAnimId = 0, introAnimStart = 0, introAnimKind = null;
+function startIntroAnim(kind) {
+  introAnimKind = kind;
+  introAnimStart = performance.now();
+  cancelAnimationFrame(introAnimId);
+  drawIntroFrame(kind, 0.3);
+  const loop = (now) => {
+    if (!introOpen) return;
+    drawIntroFrame(introAnimKind, (now - introAnimStart) / 1000);
+    introAnimId = requestAnimationFrame(loop);
+  };
+  introAnimId = requestAnimationFrame(loop);
+}
+
+/* ---------- Input ---------- */
+let controlScheme = 'dpad';
+let controlChosen = false;   // true once the player picks a scheme themselves
+
+window.addEventListener('keydown', (e) => {
+  if (document.getElementById('gameScreen').classList.contains('hidden')) return;
+  if (e.key === 'z' || e.key === 'Backspace') { undoMove(); return; }
+  if (dead) { if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) restartLevel(); return; }
+  if (e.key === 'ArrowUp') tryMove(0,-1);
+  if (e.key === 'ArrowDown') tryMove(0,1);
+  if (e.key === 'ArrowLeft') tryMove(-1,0);
+  if (e.key === 'ArrowRight') tryMove(1,0);
+});
+
+// swipe gestures
+let swipeStart = null;
+const SWIPE_THRESHOLD = 26;
+
+canvas.addEventListener('pointerdown', (e) => {
+  if (dead) { restartLevel(); return; }
+  if (controlScheme === 'swipe') {
+    swipeStart = { x: e.clientX, y: e.clientY };
+  } else if (controlScheme === 'tap') {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width/2;
+    const y = e.clientY - rect.top - rect.height/2;
+    if (Math.abs(x) > Math.abs(y)) {
+      tryMove(x > 0 ? 1 : -1, 0);
+    } else {
+      tryMove(0, y > 0 ? 1 : -1);
+    }
+  }
+});
+canvas.addEventListener('pointerup', (e) => {
+  if (controlScheme !== 'swipe' || !swipeStart) return;
+  const dx = e.clientX - swipeStart.x;
+  const dy = e.clientY - swipeStart.y;
+  swipeStart = null;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_THRESHOLD) return;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    tryMove(dx > 0 ? 1 : -1, 0);
+  } else {
+    tryMove(0, dy > 0 ? 1 : -1);
+  }
+});
+canvas.addEventListener('pointercancel', () => { swipeStart = null; });
+
+// mini D-pad
+function bindMiniPad(id, dx, dy) {
+  document.getElementById(id).addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    if (dead) { restartLevel(); return; }
+    tryMove(dx, dy);
+  });
+}
+bindMiniPad('mpUp', 0, -1);
+bindMiniPad('mpDown', 0, 1);
+bindMiniPad('mpLeft', -1, 0);
+bindMiniPad('mpRight', 1, 0);
+
+function applyControlScheme() {
+  document.getElementById('miniPad').classList.toggle('hidden', controlScheme !== 'dpad');
+  const hint = document.getElementById('swipeHint');
+  if (controlScheme === 'swipe') { hint.textContent = 'swipe to move'; hint.classList.remove('hidden'); }
+  else if (controlScheme === 'tap') { hint.textContent = 'tap a direction to move'; hint.classList.remove('hidden'); }
+  else { hint.classList.add('hidden'); }
+  document.querySelectorAll('.ctrlOpt').forEach(btn => {
+    btn.style.opacity = btn.dataset.scheme === controlScheme ? '1' : '0.5';
+    btn.style.borderColor = btn.dataset.scheme === controlScheme ? 'rgba(182,255,61,0.6)' : '';
+  });
+}
+
+document.getElementById('settingsBtn').addEventListener('click', () => {
+  sndClick();
+  document.getElementById('settingsPanel').classList.remove('hidden');
+  applyControlScheme();
+});
+document.getElementById('settingsCloseBtn').addEventListener('click', () => {
+  sndClick();
+  document.getElementById('settingsPanel').classList.add('hidden');
+});
+document.querySelectorAll('.ctrlOpt').forEach(btn => {
+  btn.addEventListener('click', () => {
+    sndClick();
+    controlScheme = btn.dataset.scheme;
+    controlChosen = true;
+    saveProgress();
+    applyControlScheme();
+  });
+});
+applyControlScheme();
+
+function restartLevel() { loadLevel(curIdx); }
+
+/* ---------- Screens ---------- */
+function showScreen(id) {
+  ['titleScreen','selectScreen','gameScreen'].forEach(s => {
+    document.getElementById(s).classList.toggle('hidden', s !== id);
+  });
+  if (id === 'gameScreen') startAmbient(); else stopAmbient();
+}
+
+/* ---------- Level select map ---------- */
+const mapCanvas = document.getElementById('mapCanvas');
+const mapCtx = mapCanvas.getContext('2d');
+let mapNodes = [];
+const NODE_R = 30;
+const ROW_H = 132;
+const TOP_PAD = 50;
+
+function computeMapNodes() {
+  const wrapW = document.getElementById('mapWrap').clientWidth || 360;
+  mapCanvas.width = wrapW;
+  const rows = Math.ceil(activeLevels().length / 3);
+  mapCanvas.height = TOP_PAD*2 + rows*ROW_H;
+  const colX = [wrapW*0.22, wrapW*0.5, wrapW*0.78];
+  mapNodes = activeLevels().map((lvl, i) => {
+    const row = Math.floor(i/3);
+    let colIdx = i % 3;
+    if (row % 2 === 1) colIdx = 2 - colIdx; // serpentine
+    return { x: colX[colIdx], y: TOP_PAD + row*ROW_H, idx: i };
+  });
+}
+
+function drawLockIcon(cx, cy, s, color) {
+  mapCtx.strokeStyle = color;
+  mapCtx.fillStyle = color;
+  mapCtx.lineWidth = 2;
+  mapCtx.beginPath();
+  mapCtx.arc(cx, cy - s*0.35, s*0.55, Math.PI, 0, false);
+  mapCtx.stroke();
+  mapCtx.fillRect(cx - s*0.75, cy - s*0.15, s*1.5, s*1.15);
+}
+
+function drawMap() {
+  if (document.getElementById('selectScreen').classList.contains('hidden')) {
+    requestAnimationFrame(drawMap);
+    return;
+  }
+  const W = mapCanvas.width, H = mapCanvas.height;
+  mapCtx.clearRect(0,0,W,H);
+
+  // connecting lines
+  for (let i = 0; i < mapNodes.length - 1; i++) {
+    const a = mapNodes[i], b = mapNodes[i+1];
+    const segUnlocked = (i+1) < unlocked;
+    mapCtx.beginPath();
+    mapCtx.moveTo(a.x, a.y);
+    const midY = (a.y+b.y)/2;
+    mapCtx.bezierCurveTo(a.x, midY, b.x, midY, b.x, b.y);
+    if (segUnlocked) {
+      mapCtx.strokeStyle = 'rgba(182,255,61,0.55)';
+      mapCtx.shadowColor = '#b6ff3d'; mapCtx.shadowBlur = 10;
+    } else {
+      mapCtx.strokeStyle = 'rgba(255,255,255,0.08)';
+      mapCtx.shadowBlur = 0;
+    }
+    mapCtx.lineWidth = 4;
+    mapCtx.stroke();
+    mapCtx.shadowBlur = 0;
+  }
+
+  // nodes
+  const t = Date.now();
+  mapNodes.forEach((n, i) => {
+    const isUnlocked = i < unlocked;
+    const isNext = i === unlocked - 1;
+    const s = stars[i] || 0;
+
+    if (isNext) {
+      const pulse = 0.5 + Math.sin(t/300)*0.5;
+      mapCtx.beginPath();
+      mapCtx.arc(n.x, n.y, NODE_R + 6 + pulse*4, 0, Math.PI*2);
+      mapCtx.strokeStyle = `rgba(182,255,61,${0.3+pulse*0.4})`;
+      mapCtx.lineWidth = 2.5;
+      mapCtx.stroke();
+    }
+
+    mapCtx.beginPath();
+    mapCtx.arc(n.x, n.y, NODE_R, 0, Math.PI*2);
+    if (isUnlocked) {
+      mapCtx.fillStyle = 'rgba(255,255,255,0.06)';
+      mapCtx.shadowColor = '#b6ff3d'; mapCtx.shadowBlur = 14;
+      mapCtx.fill();
+      mapCtx.shadowBlur = 0;
+      mapCtx.strokeStyle = 'rgba(182,255,61,0.5)';
+      mapCtx.lineWidth = 2;
+      mapCtx.stroke();
+    } else {
+      mapCtx.fillStyle = 'rgba(255,255,255,0.03)';
+      mapCtx.fill();
+      mapCtx.strokeStyle = 'rgba(255,255,255,0.1)';
+      mapCtx.lineWidth = 1.5;
+      mapCtx.stroke();
+    }
+
+    mapCtx.fillStyle = isUnlocked ? '#eafff0' : '#4a5262';
+    mapCtx.font = "20px 'Bungee', sans-serif";
+    mapCtx.textAlign = 'center';
+    mapCtx.textBaseline = 'middle';
+    if (isUnlocked) {
+      mapCtx.fillText(i+1, n.x, n.y - 4);
+    } else {
+      drawLockIcon(n.x, n.y - 2, 9, '#4a5262');
+    }
+
+    if (isUnlocked) {
+      mapCtx.font = "11px sans-serif";
+      mapCtx.fillStyle = '#ffcf3d';
+      mapCtx.shadowColor = 'rgba(255,207,61,0.6)'; mapCtx.shadowBlur = 4;
+      mapCtx.fillText('★'.repeat(s) + '☆'.repeat(3-s), n.x, n.y + NODE_R - 6);
+      mapCtx.shadowBlur = 0;
+    }
+  });
+
+  requestAnimationFrame(drawMap);
+}
+
+mapCanvas.addEventListener('pointerdown', (e) => {
+  const rect = mapCanvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  for (const n of mapNodes) {
+    const d = Math.hypot(x - n.x, y - n.y);
+    if (d <= NODE_R && n.idx < unlocked) {
+      sndClick();
+      loadLevel(n.idx);
+      showScreen('gameScreen');
+      break;
+    }
+  }
+});
+
+function buildLevelGrid() {
+  computeMapNodes();
+  document.getElementById('worldTitle').textContent = 'World ' + currentWorld;
+  document.getElementById('worldTab1').style.opacity = currentWorld === 1 ? '1' : '0.5';
+  document.getElementById('worldTab2').style.opacity = currentWorld === 2 ? '1' : '0.5';
+  document.getElementById('worldTab3').style.opacity = currentWorld === 3 ? '1' : '0.5';
+  document.getElementById('worldTab4').style.opacity = currentWorld === 4 ? '1' : '0.5';
+}
+window.addEventListener('resize', () => { if (mapNodes.length) computeMapNodes(); });
+drawMap();
+
+document.getElementById('playBtn').addEventListener('click', () => {
+  sndClick();
+  buildLevelGrid();
+  showScreen('selectScreen');
+});
+document.getElementById('backBtn').addEventListener('click', () => { sndClick(); showScreen('titleScreen'); });
+document.getElementById('menuBtn').addEventListener('click', () => { sndClick(); buildLevelGrid(); showScreen('selectScreen'); });
+document.getElementById('worldTab1').addEventListener('click', () => { sndClick(); switchWorld(1); buildLevelGrid(); });
+document.getElementById('worldTab2').addEventListener('click', () => { sndClick(); switchWorld(2); buildLevelGrid(); });
+document.getElementById('worldTab3').addEventListener('click', () => { sndClick(); switchWorld(3); buildLevelGrid(); });
+document.getElementById('worldTab4').addEventListener('click', () => { sndClick(); switchWorld(4); buildLevelGrid(); });
+document.getElementById('nextBtn').addEventListener('click', () => {
+  if (curIdx+1 < activeLevels().length) { loadLevel(curIdx+1); }
+});
+document.getElementById('retryBtn').addEventListener('click', () => { sndClick(); loadLevel(curIdx); });
+document.getElementById('hintBtn').addEventListener('click', () => { sndClick(); showHint(); });
+document.getElementById('undoBtn').addEventListener('click', undoMove);
+
+loadProgress();
+applyControlScheme();
+loadLevel(0);
+render();
+</script>
+</body>
+</html>
